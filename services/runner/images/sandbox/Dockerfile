@@ -16,22 +16,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install pnpm globally
 RUN npm install -g pnpm@9
 
-# Create non-root user
-RUN useradd -m -s /bin/bash -u 1000 sandbox
+# Use the existing 'node' user (UID 1000) instead of creating a new one
+# The node:20 image already has a 'node' user with UID 1000
 
 # Create workspace directory
-RUN mkdir -p /workspace && chown sandbox:sandbox /workspace
+RUN mkdir -p /workspace && chown node:node /workspace
 
 # Set working directory
 WORKDIR /workspace
 
 # Switch to non-root user
-USER sandbox
+USER node
 
 # Set environment variables
 ENV NODE_ENV=development
-ENV HOME=/home/sandbox
-ENV PATH="/home/sandbox/.local/bin:$PATH"
+ENV HOME=/home/node
+ENV PATH="/home/node/.local/bin:$PATH"
 
 # Default command - keep container running
 CMD ["tail", "-f", "/dev/null"]
