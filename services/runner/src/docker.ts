@@ -94,11 +94,11 @@ export async function startContainer(workspaceId: string, hostPath: string): Pro
     Image: SANDBOX_IMAGE,
     name: `workspace-${workspaceId}`,
     Hostname: 'sandbox',
-    User: 'sandbox',
+    User: 'node',
     WorkingDir: '/workspace',
     Env: [
       'NODE_ENV=development',
-      'HOME=/home/sandbox',
+      'HOME=/home/node',
     ],
     ExposedPorts: {
       '3000/tcp': {},
@@ -200,7 +200,7 @@ export async function execCommand(
     WorkingDir: workingDir || '/workspace',
     AttachStdout: true,
     AttachStderr: true,
-    User: 'sandbox',
+    User: 'node',
   });
 
   const stream = await exec.start({ hijack: true, stdin: false });
@@ -267,7 +267,7 @@ export async function execCommandStreaming(
     WorkingDir: workingDir || '/workspace',
     AttachStdout: true,
     AttachStderr: true,
-    User: 'sandbox',
+    User: 'node',
   });
 
   const stream = await exec.start({ hijack: true, stdin: false });
