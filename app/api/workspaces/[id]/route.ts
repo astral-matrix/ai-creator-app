@@ -5,9 +5,10 @@ const RUNNER_BASE_URL = process.env.RUNNER_BASE_URL || 'http://localhost:4050';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const searchParams = request.nextUrl.searchParams;
     const anonUserId = searchParams.get('anonUserId');
 
@@ -18,7 +19,7 @@ export async function GET(
       );
     }
 
-    const workspace = await workspaceRepo.findById(params.id);
+    const workspace = await workspaceRepo.findById(id);
 
     if (!workspace) {
       return NextResponse.json(
@@ -37,7 +38,7 @@ export async function GET(
     // Try to get live status from runner
     try {
       const runnerResponse = await fetch(
-        `${RUNNER_BASE_URL}/runner/workspaces/${params.id}/status`,
+        `${RUNNER_BASE_URL}/runner/workspaces/${id}/status`,
         { method: 'GET' }
       );
 
@@ -46,7 +47,7 @@ export async function GET(
         // Update local status if different
         if (runnerStatus.status !== workspace.status) {
           await workspaceRepo.updateStatus(
-            params.id,
+            id,
             runnerStatus.status,
             runnerStatus.containerId,
             runnerStatus.exposedPort
@@ -90,9 +91,10 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const { anonUserId } = body;
 
@@ -103,7 +105,7 @@ export async function DELETE(
       );
     }
 
-    const workspace = await workspaceRepo.findById(params.id);
+    const workspace = await workspaceRepo.findById(id);
 
     if (!workspace) {
       return NextResponse.json(
@@ -121,7 +123,7 @@ export async function DELETE(
 
     // Stop container in runner
     try {
-      await fetch(`${RUNNER_BASE_URL}/runner/workspaces/${params.id}/stop`, {
+      await fetch(`${RUNNER_BASE_URL}/runner/workspaces/${id}/stop`, {
         method: 'POST',
       });
     } catch (error) {
@@ -129,7 +131,7 @@ export async function DELETE(
     }
 
     // Delete from database
-    await workspaceRepo.delete(params.id);
+    await workspaceRepo.delete(id);
 
     return NextResponse.json({ success: true });
   } catch (error) {

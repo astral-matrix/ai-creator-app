@@ -80,16 +80,16 @@ export const useAppStore = create<AppState>()(
       currentWorkspace: null,
       setCurrentWorkspace: (workspace) => set({ currentWorkspace: workspace }),
 
-      // Provider/model
+      // Provider/model - defaults to Groq (free)
       selectedProvider: {
-        CHAT: 'openai',
-        DESIGN: 'openai',
-        BUILD: 'anthropic',
+        CHAT: 'groq',
+        DESIGN: 'groq',
+        BUILD: 'groq',
       },
       selectedModel: {
-        CHAT: 'gpt-5.2',
-        DESIGN: 'gpt-5.2-thinking',
-        BUILD: 'opus-4.5-high',
+        CHAT: 'llama-3.3-70b',
+        DESIGN: 'llama-3.3-70b',
+        BUILD: 'llama-3.3-70b',
       },
       setSelectedProvider: (mode, provider) =>
         set((state) => ({

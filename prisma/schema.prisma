@@ -17,6 +17,7 @@ enum Provider {
   openai
   anthropic
   xai
+  groq
 }
 
 enum MessageRole {
@@ -63,12 +64,12 @@ model UserPreferences {
   currentConversationIdDesign String?
   currentConversationIdBuild  String?
 
-  defaultProviderChat  Provider @default(openai)
-  defaultModelChat     String   @default("gpt-5.2")
-  defaultProviderDesign Provider @default(openai)
-  defaultModelDesign   String   @default("gpt-5.2-thinking")
-  defaultProviderBuild Provider @default(anthropic)
-  defaultModelBuild    String   @default("opus-4.5-high")
+  defaultProviderChat  Provider @default(groq)
+  defaultModelChat     String   @default("llama-3.3-70b")
+  defaultProviderDesign Provider @default(groq)
+  defaultModelDesign   String   @default("llama-3.3-70b")
+  defaultProviderBuild Provider @default(groq)
+  defaultModelBuild    String   @default("llama-3.3-70b")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

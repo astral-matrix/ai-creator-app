@@ -3,11 +3,13 @@ import { ProviderAdapter, StreamChatParams, StreamChunk } from './types';
 import { OpenAIAdapter } from './providers/openai';
 import { AnthropicAdapter } from './providers/anthropic';
 import { XAIAdapter } from './providers/xai';
+import { GroqAdapter } from './providers/groq';
 
 // Singleton instances
 let openaiAdapter: OpenAIAdapter | null = null;
 let anthropicAdapter: AnthropicAdapter | null = null;
 let xaiAdapter: XAIAdapter | null = null;
+let groqAdapter: GroqAdapter | null = null;
 
 export function getAdapter(provider: Provider): ProviderAdapter {
   switch (provider) {
@@ -26,6 +28,11 @@ export function getAdapter(provider: Provider): ProviderAdapter {
         xaiAdapter = new XAIAdapter();
       }
       return xaiAdapter;
+    case 'groq':
+      if (!groqAdapter) {
+        groqAdapter = new GroqAdapter();
+      }
+      return groqAdapter;
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }

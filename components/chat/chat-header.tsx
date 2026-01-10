@@ -113,6 +113,7 @@ function ProviderIcon({ provider }: { provider: Provider }) {
     openai: "bg-emerald-500",
     anthropic: "bg-orange-500",
     xai: "bg-blue-500",
+    groq: "bg-purple-500",
   };
 
   return (

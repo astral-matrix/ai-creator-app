@@ -5,9 +5,10 @@ const RUNNER_BASE_URL = process.env.RUNNER_BASE_URL || 'http://localhost:4050';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const { anonUserId } = body;
 
@@ -18,7 +19,7 @@ export async function POST(
       );
     }
 
-    const workspace = await workspaceRepo.findById(params.id);
+    const workspace = await workspaceRepo.findById(id);
 
     if (!workspace) {
       return NextResponse.json(
@@ -36,7 +37,7 @@ export async function POST(
 
     // Restart container via runner (stop then start)
     try {
-      await fetch(`${RUNNER_BASE_URL}/runner/workspaces/${params.id}/stop`, {
+      await fetch(`${RUNNER_BASE_URL}/runner/workspaces/${id}/stop`, {
         method: 'POST',
       });
     } catch (error) {
@@ -44,7 +45,7 @@ export async function POST(
     }
 
     const runnerResponse = await fetch(
-      `${RUNNER_BASE_URL}/runner/workspaces/${params.id}/start`,
+      `${RUNNER_BASE_URL}/runner/workspaces/${id}/start`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -54,7 +55,7 @@ export async function POST(
 
     if (!runnerResponse.ok) {
       const errorText = await runnerResponse.text();
-      await workspaceRepo.updateStatus(params.id, 'error');
+      await workspaceRepo.updateStatus(id, 'error');
       return NextResponse.json(
         { error: `Failed to restart workspace: ${errorText}` },
         { status: 500 }
@@ -65,7 +66,7 @@ export async function POST(
 
     // Update workspace status
     await workspaceRepo.updateStatus(
-      params.id,
+      id,
       'running',
       result.containerId,
       result.exposedPort
@@ -75,7 +76,7 @@ export async function POST(
       success: true,
       containerId: result.containerId,
       exposedPort: result.exposedPort,
-      previewUrl: `/preview/${params.id}/`,
+      previewUrl: `/preview/${id}/`,
     });
   } catch (error) {
     console.error('Restart workspace error:', error);

@@ -5,9 +5,10 @@ const RUNNER_BASE_URL = process.env.RUNNER_BASE_URL || 'http://localhost:4050';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const { anonUserId, command, workingDir, conversationId } = body as {
       anonUserId: string;
@@ -23,7 +24,7 @@ export async function POST(
       );
     }
 
-    const workspace = await workspaceRepo.findById(params.id);
+    const workspace = await workspaceRepo.findById(id);
 
     if (!workspace) {
       return NextResponse.json(
@@ -48,14 +49,14 @@ export async function POST(
 
     // Create process record
     const process = await processRepo.create({
-      workspaceId: params.id,
+      workspaceId: id,
       command,
       status: 'running',
     });
 
     // Execute command via runner
     const runnerResponse = await fetch(
-      `${RUNNER_BASE_URL}/runner/workspaces/${params.id}/exec`,
+      `${RUNNER_BASE_URL}/runner/workspaces/${id}/exec`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -74,7 +75,7 @@ export async function POST(
     });
 
     // Update workspace last command time
-    await workspaceRepo.updateLastCommand(params.id);
+    await workspaceRepo.updateLastCommand(id);
 
     // Optionally add system message to conversation
     if (conversationId) {

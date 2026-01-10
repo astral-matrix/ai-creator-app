@@ -3,10 +3,11 @@ import { workspaceRepo } from '@/lib/db/repositories';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { workspaceId: string; path: string[] } }
+  { params }: { params: Promise<{ workspaceId: string; path: string[] }> }
 ) {
   try {
-    const workspace = await workspaceRepo.findById(params.workspaceId);
+    const { workspaceId, path } = await params;
+    const workspace = await workspaceRepo.findById(workspaceId);
 
     if (!workspace) {
       return new NextResponse('Workspace not found', { status: 404 });
@@ -54,7 +55,7 @@ export async function GET(
     }
 
     // Construct the path
-    const pathStr = params.path?.join('/') || '';
+    const pathStr = path?.join('/') || '';
     const targetUrl = `http://127.0.0.1:${workspace.exposedPort}/${pathStr}`;
 
     // Forward the request
@@ -143,28 +144,28 @@ export async function GET(
 // Handle other HTTP methods
 export async function POST(
   request: NextRequest,
-  context: { params: { workspaceId: string; path: string[] } }
+  context: { params: Promise<{ workspaceId: string; path: string[] }> }
 ) {
   return GET(request, context);
 }
 
 export async function PUT(
   request: NextRequest,
-  context: { params: { workspaceId: string; path: string[] } }
+  context: { params: Promise<{ workspaceId: string; path: string[] }> }
 ) {
   return GET(request, context);
 }
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: { workspaceId: string; path: string[] } }
+  context: { params: Promise<{ workspaceId: string; path: string[] }> }
 ) {
   return GET(request, context);
 }
 
 export async function PATCH(
   request: NextRequest,
-  context: { params: { workspaceId: string; path: string[] } }
+  context: { params: Promise<{ workspaceId: string; path: string[] }> }
 ) {
   return GET(request, context);
 }

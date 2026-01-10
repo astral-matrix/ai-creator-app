@@ -3,9 +3,10 @@ import { conversationRepo, userRepo } from '@/lib/db/repositories';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const searchParams = request.nextUrl.searchParams;
     const anonUserId = searchParams.get('anonUserId');
 
@@ -16,7 +17,7 @@ export async function GET(
       );
     }
 
-    const conversation = await conversationRepo.findById(params.id);
+    const conversation = await conversationRepo.findById(id);
 
     if (!conversation) {
       return NextResponse.json(
@@ -66,9 +67,10 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const { anonUserId, title, provider, model, workspaceId } = body;
 
@@ -79,7 +81,7 @@ export async function PATCH(
       );
     }
 
-    const conversation = await conversationRepo.findById(params.id);
+    const conversation = await conversationRepo.findById(id);
 
     if (!conversation) {
       return NextResponse.json(
@@ -97,19 +99,19 @@ export async function PATCH(
 
     // Update fields
     if (title !== undefined) {
-      await conversationRepo.updateTitle(params.id, title);
+      await conversationRepo.updateTitle(id, title);
     }
 
     if (provider && model) {
-      await conversationRepo.updateProviderModel(params.id, provider, model);
+      await conversationRepo.updateProviderModel(id, provider, model);
     }
 
     if (workspaceId !== undefined) {
-      await conversationRepo.linkWorkspace(params.id, workspaceId);
+      await conversationRepo.linkWorkspace(id, workspaceId);
     }
 
     // Fetch updated conversation
-    const updated = await conversationRepo.findById(params.id);
+    const updated = await conversationRepo.findById(id);
 
     return NextResponse.json({
       id: updated!.id,

@@ -5,9 +5,10 @@ const RUNNER_BASE_URL = process.env.RUNNER_BASE_URL || 'http://localhost:4050';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const searchParams = request.nextUrl.searchParams;
     const anonUserId = searchParams.get('anonUserId');
     const path = searchParams.get('path') || '/';
@@ -19,7 +20,7 @@ export async function GET(
       );
     }
 
-    const workspace = await workspaceRepo.findById(params.id);
+    const workspace = await workspaceRepo.findById(id);
 
     if (!workspace) {
       return NextResponse.json(
@@ -37,7 +38,7 @@ export async function GET(
 
     // Get files from runner
     const runnerResponse = await fetch(
-      `${RUNNER_BASE_URL}/runner/workspaces/${params.id}/files?path=${encodeURIComponent(path)}`,
+      `${RUNNER_BASE_URL}/runner/workspaces/${id}/files?path=${encodeURIComponent(path)}`,
       { method: 'GET' }
     );
 
@@ -62,9 +63,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const { anonUserId, path, content } = body as {
       anonUserId: string;
@@ -79,7 +81,7 @@ export async function PUT(
       );
     }
 
-    const workspace = await workspaceRepo.findById(params.id);
+    const workspace = await workspaceRepo.findById(id);
 
     if (!workspace) {
       return NextResponse.json(
@@ -97,7 +99,7 @@ export async function PUT(
 
     // Write file via runner
     const runnerResponse = await fetch(
-      `${RUNNER_BASE_URL}/runner/workspaces/${params.id}/files`,
+      `${RUNNER_BASE_URL}/runner/workspaces/${id}/files`,
       {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },

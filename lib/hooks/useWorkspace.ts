@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { useAppStore } from '../store';
 import { WorkspaceData, ExecResult, PatchResult } from '../types';
 
@@ -24,18 +25,20 @@ export function useWorkspace(workspaceId?: string | null) {
       return res.json();
     },
     enabled: !!userId && !!workspaceId,
-    refetchInterval: (data) => {
+    refetchInterval: (query) => {
       // Poll more frequently when running
-      return data?.status === 'running' ? 5000 : 30000;
+      return query.state.data?.status === 'running' ? 5000 : 30000;
     },
   });
 
-  // Update store when data changes
-  if (query.data) {
-    if (JSON.stringify(query.data) !== JSON.stringify(currentWorkspace)) {
-      setCurrentWorkspace(query.data);
+  // Update store when data changes - use useEffect to avoid setState during render
+  useEffect(() => {
+    if (query.data) {
+      if (JSON.stringify(query.data) !== JSON.stringify(currentWorkspace)) {
+        setCurrentWorkspace(query.data);
+      }
     }
-  }
+  }, [query.data, currentWorkspace, setCurrentWorkspace]);
 
   const createMutation = useMutation({
     mutationFn: async ({

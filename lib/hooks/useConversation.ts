@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { useAppStore } from '../store';
 import { Mode, ConversationWithMessages, Provider } from '../types';
 
@@ -28,12 +29,19 @@ export function useConversation(mode: Mode) {
     enabled: !!userId && !!conversation?.id,
   });
 
-  // Update store when data changes
-  if (query.data && query.data.id === conversation?.id) {
-    if (JSON.stringify(query.data) !== JSON.stringify(conversation)) {
-      setConversation(mode, query.data);
+  // Update store when data changes - use useEffect to avoid setState during render
+  useEffect(() => {
+    if (query.data && query.data.id === conversation?.id) {
+      // Only update if the data is actually different
+      const currentMessages = conversation?.messages || [];
+      const newMessages = query.data.messages || [];
+      
+      if (currentMessages.length !== newMessages.length || 
+          JSON.stringify(currentMessages) !== JSON.stringify(newMessages)) {
+        setConversation(mode, query.data);
+      }
     }
-  }
+  }, [query.data, conversation?.id, conversation?.messages, mode, setConversation]);
 
   const newChatMutation = useMutation({
     mutationFn: async ({

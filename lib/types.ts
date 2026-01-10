@@ -1,6 +1,6 @@
 // Enums matching Prisma schema
 export type Mode = 'CHAT' | 'DESIGN' | 'BUILD';
-export type Provider = 'openai' | 'anthropic' | 'xai';
+export type Provider = 'openai' | 'anthropic' | 'xai' | 'groq';
 export type MessageRole = 'user' | 'assistant' | 'system';
 export type MessageStatus = 'streaming' | 'complete' | 'failed';
 export type WorkspaceStatus = 'stopped' | 'running' | 'error';
@@ -25,12 +25,17 @@ export const MODELS: Record<Provider, ModelInfo[]> = {
   xai: [
     { id: 'grok-latest', name: 'Grok Latest', provider: 'xai', description: 'xAI Grok model' },
   ],
+  groq: [
+    { id: 'llama-3.3-70b', name: 'Llama 3.3 70B', provider: 'groq', description: 'Fast & free via Groq' },
+    { id: 'llama-3.1-8b', name: 'Llama 3.1 8B', provider: 'groq', description: 'Fast & free via Groq' },
+    { id: 'mixtral-8x7b', name: 'Mixtral 8x7B', provider: 'groq', description: 'Fast & free via Groq' },
+  ],
 };
 
 export const MODE_DEFAULTS: Record<Mode, { provider: Provider; model: string }> = {
-  CHAT: { provider: 'openai', model: 'gpt-5.2' },
-  DESIGN: { provider: 'openai', model: 'gpt-5.2-thinking' },
-  BUILD: { provider: 'anthropic', model: 'opus-4.5-high' },
+  CHAT: { provider: 'groq', model: 'llama-3.3-70b' },
+  DESIGN: { provider: 'groq', model: 'llama-3.3-70b' },
+  BUILD: { provider: 'groq', model: 'llama-3.3-70b' },
 };
 
 // API Types
