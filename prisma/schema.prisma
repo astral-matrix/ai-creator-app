@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Mode {
+  CHAT
+  DESIGN
+  BUILD
+}
+
+enum Provider {
+  openai
+  anthropic
+  xai
+}
+
+enum MessageRole {
+  user
+  assistant
+  system
+}
+
+enum MessageStatus {
+  streaming
+  complete
+  failed
+}
+
+enum WorkspaceStatus {
+  stopped
+  running
+  error
+}
+
+enum ProcessStatus {
+  running
+  exited
+  failed
+}
+
+model User {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  preferences   UserPreferences?
+  conversations Conversation[]
+  workspaces    Workspace[]
+}
+
+model UserPreferences {
+  userId String @id
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  theme String @default("dark")
+
+  currentConversationIdChat   String?
+  currentConversationIdDesign String?
+  currentConversationIdBuild  String?
+
+  defaultProviderChat  Provider @default(openai)
+  defaultModelChat     String   @default("gpt-5.2")
+  defaultProviderDesign Provider @default(openai)
+  defaultModelDesign   String   @default("gpt-5.2-thinking")
+  defaultProviderBuild Provider @default(anthropic)
+  defaultModelBuild    String   @default("opus-4.5-high")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Conversation {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  mode      Mode
+  title     String?
+  provider  Provider
+  model     String
+
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+
+  messages  Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, mode])
+  @@index([workspaceId])
+}
+
+model Message {
+  id              String        @id @default(uuid())
+  conversationId  String
+  conversation    Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  role            MessageRole
+  content         String
+  status          MessageStatus @default(complete)
+  
+  clientMessageId String?
+  
+  tokenIn         Int?
+  tokenOut        Int?
+  
+  metadata        Json?
+
+  createdAt       DateTime      @default(now())
+
+  @@index([conversationId])
+  @@index([clientMessageId])
+}
+
+model Workspace {
+  id          String          @id @default(uuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name        String?
+  status      WorkspaceStatus @default(stopped)
+  containerId String?
+  hostPath    String
+  exposedPort Int?
+  
+  previewUrlPath String?
+  lastCommandAt  DateTime?
+
+  conversations Conversation[]
+  processes     WorkspaceProcess[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model WorkspaceProcess {
+  id          String        @id @default(uuid())
+  workspaceId String
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  
+  command     String
+  status      ProcessStatus
+  exitCode    Int?
+  
+  outputSnippet String?
+  outputLogPath String?
+
+  startedAt   DateTime      @default(now())
+  endedAt     DateTime?
+
+  @@index([workspaceId])
+}

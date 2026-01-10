@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai-creator-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ai_creator
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  runner:
+    build:
+      context: ./services/runner
+      dockerfile: Dockerfile
+    container_name: ai-creator-runner
+    restart: unless-stopped
+    ports:
+      - "4050:4050"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - workspaces:/workspaces
+    environment:
+      - PORT=4050
+      - WORKSPACE_BASE_PATH=/workspaces
+      - SANDBOX_IMAGE=ai-creator-sandbox:latest
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+  workspaces:
