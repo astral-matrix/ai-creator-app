@@ -41,7 +41,7 @@ export async function createWorkspace(workspaceId: string, hostPath: string): Pr
 }
 
 export async function startContainer(workspaceId: string, hostPath: string): Promise<ContainerInfo> {
-  // Check if already running
+  // Check if already running in our map
   const existing = containers.get(workspaceId);
   if (existing) {
     try {
@@ -53,6 +53,37 @@ export async function startContainer(workspaceId: string, hostPath: string): Pro
     } catch {
       // Container doesn't exist anymore
       containers.delete(workspaceId);
+    }
+  }
+
+  // Check for orphaned container with same name (e.g., after runner restart)
+  const containerName = `workspace-${workspaceId}`;
+  try {
+    const orphanedContainer = docker.getContainer(containerName);
+    const info = await orphanedContainer.inspect();
+    
+    // If it's running, reuse it
+    if (info.State.Running) {
+      // Find the exposed port from the container's port bindings
+      const portBindings = info.NetworkSettings.Ports['3000/tcp'];
+      const exposedPort = portBindings && portBindings[0] 
+        ? parseInt(portBindings[0].HostPort, 10) 
+        : allocatePort();
+      
+      containers.set(workspaceId, orphanedContainer);
+      containerPorts.set(workspaceId, exposedPort);
+      
+      console.log(`Reattached to existing container: ${containerName} on port ${exposedPort}`);
+      return { containerId: orphanedContainer.id, exposedPort };
+    }
+    
+    // If it exists but not running, remove it
+    console.log(`Removing stopped orphaned container: ${containerName}`);
+    await orphanedContainer.remove({ force: true });
+  } catch (error: any) {
+    // 404 means container doesn't exist, which is fine
+    if (error.statusCode !== 404) {
+      console.error(`Error checking for orphaned container: ${error.message}`);
     }
   }
 
