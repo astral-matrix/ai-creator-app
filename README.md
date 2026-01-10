@@ -5,7 +5,7 @@ A production-grade web application that provides a Cursor-like AI chat pane with
 ## Features
 
 - **Multi-Mode Chat Interface**: Switch between CHAT, DESIGN, and BUILD modes with strict tab locks
-- **Multi-Provider LLM Support**: OpenAI, Anthropic, and xAI integration
+- **Multi-Provider LLM Support**: Groq (free!), OpenAI, Anthropic, and xAI integration
 - **Live Code Preview**: Run AI-generated code in isolated Docker containers
 - **Diff & Command Blocks**: Apply file changes and execute commands directly from chat
 - **Persistent State**: Chat history, preferences, and workspace state persist across sessions
@@ -16,7 +16,7 @@ A production-grade web application that provides a Cursor-like AI chat pane with
 - **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS
 - **State Management**: Zustand + TanStack Query
 - **Database**: PostgreSQL with Prisma ORM
-- **LLM Providers**: OpenAI, Anthropic, xAI
+- **LLM Providers**: Groq (free), OpenAI, Anthropic, xAI
 - **Sandbox**: Docker containers via dockerode
 - **Streaming**: Server-Sent Events (SSE)
 
@@ -54,10 +54,13 @@ Create a `.env` file in the project root:
 # Database
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ai_creator?schema=public"
 
-# LLM API Keys (replace with your actual keys)
-OPENAI_API_KEY="sk-your-openai-key"
-ANTHROPIC_API_KEY="sk-ant-your-anthropic-key"
-XAI_API_KEY="xai-your-xai-key"
+# FREE LLM API - Groq (recommended to start)
+GROQ_API_KEY="gsk_your_groq_key_here"
+
+# Optional paid providers (uncomment if you have keys)
+# OPENAI_API_KEY="sk-your-openai-key"
+# ANTHROPIC_API_KEY="sk-ant-your-anthropic-key"
+# XAI_API_KEY="xai-your-xai-key"
 
 # Runner Service
 RUNNER_BASE_URL="http://localhost:4050"
@@ -65,17 +68,26 @@ RUNNER_BASE_URL="http://localhost:4050"
 # Sandbox Configuration
 SANDBOX_IMAGE_TAG="ai-creator-sandbox:latest"
 WORKSPACE_HOST_PATH="/tmp/ai-creator-workspaces"
-
-# Optional: Rate limiting
-RATE_LIMIT_REQUESTS_PER_MINUTE=60
 ```
 
-> **Note**: You need at least one valid LLM API key. Get yours from:
-> - OpenAI: https://platform.openai.com/api-keys
-> - Anthropic: https://console.anthropic.com/
-> - xAI: https://x.ai/api
+### 3. Get a FREE Groq API Key
 
-### 3. Start PostgreSQL
+Groq offers **free API access** with generous rate limits - no credit card required!
+
+1. Go to **https://console.groq.com/keys**
+2. Sign up for a free account (GitHub or Google login available)
+3. Click **"Create API Key"**
+4. Copy the key and add it to your `.env` file:
+   ```
+   GROQ_API_KEY="gsk_xxxxxxxxxxxxxxxxxxxx"
+   ```
+
+Groq provides access to powerful open-source models with extremely fast inference:
+- **Llama 3.3 70B** - Best quality, great for complex tasks
+- **Llama 3.1 8B** - Fastest, good for simple tasks
+- **Mixtral 8x7B** - Good balance of speed and quality
+
+### 4. Start PostgreSQL
 
 ```bash
 docker-compose up -d postgres
@@ -83,19 +95,19 @@ docker-compose up -d postgres
 
 Wait a few seconds for PostgreSQL to initialize.
 
-### 4. Initialize Database
+### 5. Initialize Database
 
 ```bash
 npm run db:push
 ```
 
-### 5. Build Sandbox Image
+### 6. Build Sandbox Image
 
 ```bash
 npm run sandbox:build
 ```
 
-### 6. Start the Application
+### 7. Start the Application
 
 You need two terminal windows:
 
@@ -109,7 +121,7 @@ npm run runner
 npm run dev
 ```
 
-### 7. Open the App
+### 8. Open the App
 
 Navigate to **http://localhost:3000** in your browser.
 
@@ -119,22 +131,32 @@ Navigate to **http://localhost:3000** in your browser.
 - General conversation and Q&A
 - Brainstorming and ideation
 - No code execution capabilities
-- Default model: GPT-5.2
+- Default model: Llama 3.3 70B (Groq)
 
 ### DESIGN Mode
 - System design and architecture planning
 - Technical specifications and tradeoff analysis
 - No code execution
-- Default model: GPT-5.2 Thinking
+- Default model: Llama 3.3 70B (Groq)
 
 ### BUILD Mode
 - Active code generation
 - File changes via unified diffs
 - Command execution in sandboxed containers
 - Live preview of running apps
-- Default model: Claude Opus 4.5
+- Default model: Llama 3.3 70B (Groq)
 
 ## Available Models
+
+### Free (Groq) ⭐
+
+| Provider | Model ID        | Description                    |
+|----------|-----------------|--------------------------------|
+| Groq     | llama-3.3-70b   | Best quality, fast inference   |
+| Groq     | llama-3.1-8b    | Fastest, good for simple tasks |
+| Groq     | mixtral-8x7b    | Balanced speed and quality     |
+
+### Paid (Optional)
 
 | Provider   | Model ID           | Description          |
 |------------|-------------------|----------------------|
@@ -229,7 +251,10 @@ Run `npm run sandbox:build` to build the sandbox Docker image.
 Make sure the runner service is running with `npm run runner`.
 
 ### "API key errors"
-Verify your API keys in `.env` are correct.
+Verify your API keys in `.env` are correct. For Groq, the key should start with `gsk_`.
+
+### "Groq rate limit exceeded"
+Groq's free tier has rate limits. Wait a moment and try again, or consider upgrading to a paid plan.
 
 ## License
 
