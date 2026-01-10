@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useAppStore } from '../store';
-import { WorkspaceData, ExecResult, PatchResult } from '../types';
+import { WorkspaceData, ExecResult, PatchResult, DaemonInfo } from '../types';
 
 export function useWorkspace(workspaceId?: string | null) {
   const { userId, currentWorkspace, setCurrentWorkspace } = useAppStore();
@@ -189,6 +189,102 @@ export function useWorkspace(workspaceId?: string | null) {
     },
   });
 
+  // Daemon mutations
+  const startDaemonMutation = useMutation({
+    mutationFn: async ({
+      daemonId,
+      command,
+      workingDir,
+    }: {
+      daemonId: string;
+      command: string;
+      workingDir?: string;
+    }): Promise<{ daemonId: string; pid: number }> => {
+      if (!workspaceId) throw new Error('No workspace');
+
+      const res = await fetch(`/api/workspaces/${workspaceId}/daemon/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          anonUserId: userId,
+          daemonId,
+          command,
+          workingDir,
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.error || 'Failed to start daemon');
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['daemons', workspaceId] });
+    },
+  });
+
+  const stopDaemonMutation = useMutation({
+    mutationFn: async (daemonId: string): Promise<void> => {
+      if (!workspaceId) throw new Error('No workspace');
+
+      const res = await fetch(`/api/workspaces/${workspaceId}/daemon/${daemonId}/stop`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ anonUserId: userId }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.error || 'Failed to stop daemon');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['daemons', workspaceId] });
+    },
+  });
+
+  // Query for listing daemons
+  const daemonsQuery = useQuery({
+    queryKey: ['daemons', workspaceId],
+    queryFn: async (): Promise<{ daemons: DaemonInfo[] }> => {
+      if (!userId || !workspaceId) return { daemons: [] };
+
+      const res = await fetch(
+        `/api/workspaces/${workspaceId}/daemons?anonUserId=${userId}`
+      );
+
+      if (!res.ok) {
+        throw new Error('Failed to fetch daemons');
+      }
+
+      return res.json();
+    },
+    enabled: !!userId && !!workspaceId && query.data?.status === 'running',
+    refetchInterval: 5000, // Poll for daemon status updates
+  });
+
+  // Function to get daemon logs
+  const getDaemonLogs = async (daemonId: string, tail?: number): Promise<string> => {
+    if (!workspaceId || !userId) throw new Error('No workspace');
+
+    const url = new URL(`/api/workspaces/${workspaceId}/daemon/${daemonId}/logs`, window.location.origin);
+    url.searchParams.set('anonUserId', userId);
+    if (tail) {
+      url.searchParams.set('tail', tail.toString());
+    }
+
+    const res = await fetch(url.toString());
+
+    if (!res.ok) {
+      throw new Error('Failed to get daemon logs');
+    }
+
+    const data = await res.json();
+    return data.logs;
+  };
+
   return {
     workspace: currentWorkspace || query.data,
     isLoading: query.isLoading,
@@ -213,5 +309,17 @@ export function useWorkspace(workspaceId?: string | null) {
 
     applyPatch: applyPatchMutation.mutateAsync,
     isApplying: applyPatchMutation.isPending,
+
+    // Daemon management
+    daemons: daemonsQuery.data?.daemons || [],
+    daemonsLoading: daemonsQuery.isLoading,
+
+    startDaemon: startDaemonMutation.mutateAsync,
+    isStartingDaemon: startDaemonMutation.isPending,
+
+    stopDaemon: stopDaemonMutation.mutateAsync,
+    isStoppingDaemon: stopDaemonMutation.isPending,
+
+    getDaemonLogs,
   };
 }

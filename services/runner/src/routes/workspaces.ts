@@ -5,6 +5,11 @@ import {
   stopContainer,
   getContainerStatus,
   execCommand,
+  startDaemon,
+  stopDaemon,
+  getDaemonLogs,
+  listDaemons,
+  getDaemonStatus,
 } from '../docker.js';
 import { applyPatch } from '../patch.js';
 import { listFiles, readFile, writeFile, ensureWorkspaceDir } from '../files.js';
@@ -160,6 +165,85 @@ router.put('/:id/files', async (req: Request, res: Response) => {
     res.json({ success: true });
   } catch (error) {
     console.error('Write file error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ error: message });
+  }
+});
+
+// ==================== DAEMON ROUTES ====================
+
+// Start a daemon process
+router.post('/:id/daemon/start', async (req: Request, res: Response) => {
+  try {
+    const { daemonId, command, workingDir } = req.body;
+    const workspaceId = req.params.id;
+
+    if (!daemonId || !command) {
+      return res.status(400).json({ error: 'Missing daemonId or command' });
+    }
+
+    const result = await startDaemon(workspaceId, daemonId, command, workingDir);
+    res.json(result);
+  } catch (error) {
+    console.error('Start daemon error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ error: message });
+  }
+});
+
+// Stop a daemon process
+router.post('/:id/daemon/:daemonId/stop', async (req: Request, res: Response) => {
+  try {
+    const { id: workspaceId, daemonId } = req.params;
+
+    await stopDaemon(workspaceId, daemonId);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Stop daemon error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ error: message });
+  }
+});
+
+// Get daemon logs
+router.get('/:id/daemon/:daemonId/logs', async (req: Request, res: Response) => {
+  try {
+    const { id: workspaceId, daemonId } = req.params;
+    const tail = req.query.tail ? parseInt(req.query.tail as string, 10) : undefined;
+
+    const logs = await getDaemonLogs(workspaceId, daemonId, tail);
+    res.json({ logs });
+  } catch (error) {
+    console.error('Get daemon logs error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ error: message });
+  }
+});
+
+// Get daemon status
+router.get('/:id/daemon/:daemonId', async (req: Request, res: Response) => {
+  try {
+    const { id: workspaceId, daemonId } = req.params;
+
+    const status = getDaemonStatus(workspaceId, daemonId);
+    if (!status) {
+      return res.status(404).json({ error: 'Daemon not found' });
+    }
+    res.json(status);
+  } catch (error) {
+    console.error('Get daemon status error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ error: message });
+  }
+});
+
+// List all daemons for a workspace
+router.get('/:id/daemons', async (req: Request, res: Response) => {
+  try {
+    const daemons = listDaemons(req.params.id);
+    res.json({ daemons });
+  } catch (error) {
+    console.error('List daemons error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ error: message });
   }

@@ -195,3 +195,23 @@ export interface PatchResult {
   filesChanged: string[];
   errors?: string[];
 }
+
+// Daemon process types
+export interface DaemonInfo {
+  id: string;
+  command: string;
+  pid: number;
+  status: 'running' | 'exited' | 'failed';
+  startedAt: string;
+}
+
+export interface StartDaemonRequest {
+  daemonId: string;
+  command: string;
+  workingDir?: string;
+}
+
+export interface StartDaemonResult {
+  daemonId: string;
+  pid: number;
+}

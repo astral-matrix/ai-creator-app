@@ -226,6 +226,87 @@ Navigate to **http://localhost:3000** in your browser.
 └── package.json          # Dependencies
 ```
 
+## Running Web Servers (Daemon Processes)
+
+The app supports running **background/daemon processes** like web servers that persist in the container. This is essential for previewing web applications.
+
+### How It Works
+
+When you ask the AI to build a web app, it needs to start the server as a **daemon** (background process) so it keeps running and can be previewed. Regular commands are synchronous and wait for completion, which doesn't work for long-running servers.
+
+### API Usage
+
+**Start a daemon (e.g., web server):**
+```typescript
+// From the useWorkspace hook
+const { startDaemon, stopDaemon, getDaemonLogs, daemons } = useWorkspace(workspaceId);
+
+// Start a Node.js server as a background process
+await startDaemon({
+  daemonId: 'web-server',      // Unique identifier for this daemon
+  command: 'node server.js',   // The command to run
+  workingDir: '/workspace'     // Optional working directory
+});
+```
+
+**Check daemon status:**
+```typescript
+// List all running daemons
+console.log(daemons);
+// Output: [{ id: 'web-server', command: 'node server.js', pid: 1234, status: 'running', startedAt: '...' }]
+```
+
+**Get daemon logs:**
+```typescript
+// Get the last 100 lines of logs
+const logs = await getDaemonLogs('web-server', 100);
+console.log(logs);
+```
+
+**Stop a daemon:**
+```typescript
+await stopDaemon('web-server');
+```
+
+### REST API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/workspaces/{id}/daemon/start` | POST | Start a daemon process |
+| `/api/workspaces/{id}/daemon/{daemonId}/stop` | POST | Stop a daemon |
+| `/api/workspaces/{id}/daemon/{daemonId}/logs` | GET | Get daemon logs |
+| `/api/workspaces/{id}/daemon/{daemonId}` | GET | Get daemon status |
+| `/api/workspaces/{id}/daemons` | GET | List all daemons |
+
+### Example: Starting an Express Server
+
+```javascript
+// In the container, this runs as a daemon:
+// Command: "node server.js"
+
+// server.js
+const express = require('express');
+const app = express();
+
+app.get('/', (req, res) => {
+  res.send('Hello from the sandbox!');
+});
+
+app.listen(3000, () => {
+  console.log('Server running on port 3000');
+});
+```
+
+The server runs on port 3000 inside the container, which is mapped to a dynamic host port (10000+). The preview pane automatically proxies requests to this port.
+
+### Important Notes
+
+1. **Daemons persist** until explicitly stopped or the container is stopped
+2. **Logs are stored** in `/tmp/daemon-{daemonId}.log` inside the container
+3. **Port 3000** is the expected port for web servers (mapped to host automatically)
+4. **Use unique daemon IDs** - starting a daemon with an existing ID will fail if it's running
+5. **Daemon status is monitored** - the system detects when daemons exit
+
 ## Security
 
 - Containers run as non-root user with dropped capabilities
