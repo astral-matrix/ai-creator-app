@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Play,
   Square,
@@ -12,10 +12,14 @@ import {
   Loader2,
   AlertCircle,
   Plus,
+  ArrowRight,
+  RefreshCw,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 import { useWorkspace } from "@/lib/hooks/useWorkspace";
 import { useAppStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -33,6 +37,9 @@ export function PreviewPane({
 }: PreviewPaneProps) {
   const [logsOpen, setLogsOpen] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
+  const [urlInput, setUrlInput] = useState("");
+  const [currentUrl, setCurrentUrl] = useState("");
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const {
     workspace,
@@ -50,6 +57,15 @@ export function PreviewPane({
   const isRunning = workspace?.status === "running";
   const hasError = workspace?.status === "error";
   const previewUrl = workspace?.previewUrlPath;
+
+  // Update URL input when preview URL changes
+  useEffect(() => {
+    if (previewUrl && isRunning) {
+      const fullUrl = `${window.location.origin}${previewUrl}`;
+      setUrlInput(fullUrl);
+      setCurrentUrl(fullUrl);
+    }
+  }, [previewUrl, isRunning]);
 
   const handleCreate = () => {
     if (onCreateWorkspace) {
@@ -75,8 +91,38 @@ export function PreviewPane({
   };
 
   const handleOpenExternal = () => {
-    if (previewUrl) {
+    if (currentUrl) {
+      window.open(currentUrl, "_blank");
+    } else if (previewUrl) {
       window.open(previewUrl, "_blank");
+    }
+  };
+
+  const handleUrlSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (urlInput.trim()) {
+      setCurrentUrl(urlInput.trim());
+      setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] Navigating to: ${urlInput.trim()}`]);
+    }
+  };
+
+  const handleRefresh = () => {
+    if (iframeRef.current && currentUrl) {
+      // Force refresh by setting src to empty then back
+      const url = currentUrl;
+      iframeRef.current.src = "";
+      setTimeout(() => {
+        if (iframeRef.current) {
+          iframeRef.current.src = url;
+        }
+      }, 50);
+      setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] Refreshing preview...`]);
+    }
+  };
+
+  const handleUrlKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleUrlSubmit();
     }
   };
 
@@ -139,15 +185,54 @@ export function PreviewPane({
         disabled={!workspace}
       />
 
+      {/* URL Bar */}
+      {isRunning && (
+        <div className="border-b border-border bg-muted/30 px-3 py-2">
+          <form onSubmit={handleUrlSubmit} className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-1 bg-background border border-border rounded-md px-3 py-1.5 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-1">
+              <Globe className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <input
+                type="text"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                onKeyDown={handleUrlKeyDown}
+                placeholder="Enter URL..."
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              />
+            </div>
+            <Button
+              type="submit"
+              size="sm"
+              variant="secondary"
+              className="h-8 px-3"
+              disabled={!urlInput.trim()}
+            >
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-8 px-2"
+              onClick={handleRefresh}
+              title="Refresh"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </Button>
+          </form>
+        </div>
+      )}
+
       {/* Preview iframe */}
       <div className="flex-1 relative bg-muted">
         {isLoading ? (
           <div className="absolute inset-0 flex items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
-        ) : isRunning && previewUrl ? (
+        ) : isRunning && currentUrl ? (
           <iframe
-            src={previewUrl}
+            ref={iframeRef}
+            src={currentUrl}
             className="w-full h-full border-0"
             title="Preview"
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
