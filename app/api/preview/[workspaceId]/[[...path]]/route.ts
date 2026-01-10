@@ -3,7 +3,7 @@ import { workspaceRepo } from '@/lib/db/repositories';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ workspaceId: string; path: string[] }> }
+  { params }: { params: Promise<{ workspaceId: string; path?: string[] }> }
 ) {
   try {
     const { workspaceId, path } = await params;
@@ -146,28 +146,28 @@ export async function GET(
 // Handle other HTTP methods
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ workspaceId: string; path: string[] }> }
+  context: { params: Promise<{ workspaceId: string; path?: string[] }> }
 ) {
   return GET(request, context);
 }
 
 export async function PUT(
   request: NextRequest,
-  context: { params: Promise<{ workspaceId: string; path: string[] }> }
+  context: { params: Promise<{ workspaceId: string; path?: string[] }> }
 ) {
   return GET(request, context);
 }
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ workspaceId: string; path: string[] }> }
+  context: { params: Promise<{ workspaceId: string; path?: string[] }> }
 ) {
   return GET(request, context);
 }
 
 export async function PATCH(
   request: NextRequest,
-  context: { params: Promise<{ workspaceId: string; path: string[] }> }
+  context: { params: Promise<{ workspaceId: string; path?: string[] }> }
 ) {
   return GET(request, context);
 }
