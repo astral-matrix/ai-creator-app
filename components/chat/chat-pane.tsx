@@ -223,7 +223,7 @@ export function ChatPane({ mode }: ChatPaneProps) {
   );
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-background overflow-hidden">
       <ChatHeader
         mode={mode}
         title={conversation?.title}

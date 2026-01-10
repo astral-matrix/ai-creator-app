@@ -114,6 +114,7 @@ function ProviderIcon({ provider }: { provider: Provider }) {
     anthropic: "bg-orange-500",
     xai: "bg-blue-500",
     groq: "bg-purple-500",
+    gemini: "bg-cyan-500",
   };
 
   return (

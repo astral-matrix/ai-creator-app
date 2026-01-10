@@ -66,6 +66,7 @@ export class GroqAdapter implements ProviderAdapter {
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('Groq API error:', response.status, errorText);
         yield { type: 'error', error: `Groq API error: ${response.status} - ${errorText}` };
         return;
       }

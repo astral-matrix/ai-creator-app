@@ -87,8 +87,8 @@ export default function Home() {
         {/* Chat pane */}
         <div
           className={cn(
-            "flex-1 min-w-0 border-r border-border",
-            previewPanelOpen && activeMode === "BUILD" ? "max-w-[55%]" : ""
+            "flex-1 min-w-0 border-r border-border overflow-hidden",
+            previewPanelOpen && activeMode === "BUILD" ? "w-[55%] flex-shrink-0" : ""
           )}
         >
           <ChatPane mode={activeMode} />

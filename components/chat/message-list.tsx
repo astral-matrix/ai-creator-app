@@ -60,8 +60,8 @@ export function MessageList({
   }
 
   return (
-    <ScrollArea className="flex-1">
-      <div className="p-4 space-y-6" ref={scrollRef}>
+    <ScrollArea className="flex-1 w-full">
+      <div className="p-3 space-y-4 text-[13px] overflow-hidden" ref={scrollRef}>
         {messages.map((message) => (
           <MessageItem
             key={message.id}
@@ -76,10 +76,10 @@ export function MessageList({
 
         {/* Streaming message */}
         {isStreaming && streamingContent && (
-          <div className="flex gap-4 animate-fade-in">
+          <div className="flex gap-3 animate-fade-in">
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                <Bot className="w-4 h-4 text-primary-foreground" />
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                <Bot className="w-3.5 h-3.5 text-primary-foreground" />
               </div>
             </div>
             <div className="flex-1 min-w-0">
@@ -160,18 +160,18 @@ function MessageItem({
   return (
     <div
       className={cn(
-        "flex gap-4 animate-fade-in",
+        "flex gap-3 animate-fade-in",
         isUser && "flex-row-reverse"
       )}
     >
       <div className="flex-shrink-0">
         {isUser ? (
-          <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
-            <User className="w-4 h-4" />
+          <div className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center">
+            <User className="w-3.5 h-3.5" />
           </div>
         ) : (
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <Bot className="w-4 h-4 text-primary-foreground" />
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+            <Bot className="w-3.5 h-3.5 text-primary-foreground" />
           </div>
         )}
       </div>
@@ -184,7 +184,7 @@ function MessageItem({
         <div
           className={cn(
             isUser &&
-              "bg-primary/10 rounded-2xl rounded-tr-sm px-4 py-3 inline-block max-w-[85%]"
+              "bg-primary/10 rounded-2xl rounded-tr-sm px-3 py-2 inline-block max-w-[85%]"
           )}
         >
           {isFailed && (

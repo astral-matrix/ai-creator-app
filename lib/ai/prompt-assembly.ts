@@ -2,11 +2,12 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { Mode } from '../types';
 
-// Cache the system prompt
+// Cache the system prompt (disabled in development for hot reload)
 let cachedSystemPrompt: string | null = null;
+const isDev = process.env.NODE_ENV !== 'production';
 
 export function getBaseSystemPrompt(): string {
-  if (!cachedSystemPrompt) {
+  if (!cachedSystemPrompt || isDev) {
     try {
       const promptPath = join(process.cwd(), 'lib/prompts/mode_switching_system_prompt.txt');
       cachedSystemPrompt = readFileSync(promptPath, 'utf-8');

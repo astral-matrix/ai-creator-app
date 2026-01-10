@@ -18,6 +18,7 @@ enum Provider {
   anthropic
   xai
   groq
+  gemini
 }
 
 enum MessageRole {

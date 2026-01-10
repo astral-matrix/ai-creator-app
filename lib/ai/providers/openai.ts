@@ -64,10 +64,15 @@ export class OpenAIAdapter implements ProviderAdapter {
 
   private mapModel(model: string): string {
     // Map our model IDs to actual OpenAI model IDs
-    // In production, these would be real model names
     const modelMap: Record<string, string> = {
-      'gpt-5.2': 'gpt-4o', // Fallback to available model
-      'gpt-5.2-thinking': 'gpt-4o', // Fallback to available model
+      'gpt-4.1-nano': 'gpt-4.1-nano',
+      'gpt-4o-mini': 'gpt-4o-mini',
+      'gpt-4.1-mini': 'gpt-4.1-mini',
+      'gpt-4.1': 'gpt-4.1',
+      'gpt-4o': 'gpt-4o',
+      'gpt-5-nano': 'gpt-5-nano',
+      'o1': 'o1',
+      'o3-mini': 'o3-mini',
     };
     return modelMap[model] || model;
   }

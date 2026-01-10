@@ -4,12 +4,14 @@ import { OpenAIAdapter } from './providers/openai';
 import { AnthropicAdapter } from './providers/anthropic';
 import { XAIAdapter } from './providers/xai';
 import { GroqAdapter } from './providers/groq';
+import { GeminiAdapter } from './providers/gemini';
 
 // Singleton instances
 let openaiAdapter: OpenAIAdapter | null = null;
 let anthropicAdapter: AnthropicAdapter | null = null;
 let xaiAdapter: XAIAdapter | null = null;
 let groqAdapter: GroqAdapter | null = null;
+let geminiAdapter: GeminiAdapter | null = null;
 
 export function getAdapter(provider: Provider): ProviderAdapter {
   switch (provider) {
@@ -33,6 +35,11 @@ export function getAdapter(provider: Provider): ProviderAdapter {
         groqAdapter = new GroqAdapter();
       }
       return groqAdapter;
+    case 'gemini':
+      if (!geminiAdapter) {
+        geminiAdapter = new GeminiAdapter();
+      }
+      return geminiAdapter;
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }

@@ -1,6 +1,6 @@
 // Enums matching Prisma schema
 export type Mode = 'CHAT' | 'DESIGN' | 'BUILD';
-export type Provider = 'openai' | 'anthropic' | 'xai' | 'groq';
+export type Provider = 'openai' | 'anthropic' | 'xai' | 'groq' | 'gemini';
 export type MessageRole = 'user' | 'assistant' | 'system';
 export type MessageStatus = 'streaming' | 'complete' | 'failed';
 export type WorkspaceStatus = 'stopped' | 'running' | 'error';
@@ -16,8 +16,14 @@ export interface ModelInfo {
 
 export const MODELS: Record<Provider, ModelInfo[]> = {
   openai: [
-    { id: 'gpt-5.2', name: 'GPT-5.2', provider: 'openai', description: 'Latest GPT model' },
-    { id: 'gpt-5.2-thinking', name: 'GPT-5.2 Thinking', provider: 'openai', description: 'Enhanced reasoning' },
+    { id: 'gpt-4.1-nano', name: 'GPT-4.1 Nano', provider: 'openai', description: 'Cheapest & fastest ($0.10/M in)' },
+    { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'openai', description: 'Fast & cheap ($0.15/M in)' },
+    { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini', provider: 'openai', description: 'Balanced ($0.40/M in)' },
+    { id: 'gpt-4.1', name: 'GPT-4.1', provider: 'openai', description: 'Capable ($2/M in)' },
+    { id: 'gpt-4o', name: 'GPT-4o', provider: 'openai', description: 'Multimodal flagship' },
+    { id: 'gpt-5-nano', name: 'GPT-5 Nano', provider: 'openai', description: 'Latest nano model' },
+    { id: 'o1', name: 'o1', provider: 'openai', description: 'Advanced reasoning' },
+    { id: 'o3-mini', name: 'o3-mini', provider: 'openai', description: 'Fast reasoning' },
   ],
   anthropic: [
     { id: 'opus-4.5-high', name: 'Claude Opus 4.5', provider: 'anthropic', description: 'Most capable Claude' },
@@ -30,12 +36,17 @@ export const MODELS: Record<Provider, ModelInfo[]> = {
     { id: 'llama-3.1-8b', name: 'Llama 3.1 8B', provider: 'groq', description: 'Fast & free via Groq' },
     { id: 'mixtral-8x7b', name: 'Mixtral 8x7B', provider: 'groq', description: 'Fast & free via Groq' },
   ],
+  gemini: [
+    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: 'gemini', description: 'Fast & free Google AI' },
+    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'gemini', description: 'Fast & free Google AI' },
+    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'gemini', description: 'Most capable Gemini' },
+  ],
 };
 
 export const MODE_DEFAULTS: Record<Mode, { provider: Provider; model: string }> = {
-  CHAT: { provider: 'groq', model: 'llama-3.3-70b' },
-  DESIGN: { provider: 'groq', model: 'llama-3.3-70b' },
-  BUILD: { provider: 'groq', model: 'llama-3.3-70b' },
+  CHAT: { provider: 'gemini', model: 'gemini-2.0-flash' },
+  DESIGN: { provider: 'gemini', model: 'gemini-2.0-flash' },
+  BUILD: { provider: 'gemini', model: 'gemini-2.0-flash' },
 };
 
 // API Types

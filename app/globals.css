@@ -201,3 +201,14 @@ body {
 .hljs {
   background: transparent !important;
 }
+
+/* Fix Radix ScrollArea viewport width issue */
+[data-radix-scroll-area-viewport] {
+  min-width: 0 !important;
+  display: block !important;
+}
+
+[data-radix-scroll-area-viewport] > div {
+  min-width: 0 !important;
+  display: block !important;
+}

@@ -40,7 +40,7 @@ export function MessageRenderer({
   const blocks = parseMessageContent(content);
 
   return (
-    <div className="prose max-w-none">
+    <div className="prose prose-sm max-w-full text-[13px] overflow-hidden break-words">
       {blocks.map((block, index) => (
         <BlockRenderer
           key={index}

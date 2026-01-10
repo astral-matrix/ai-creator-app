@@ -80,16 +80,16 @@ export const useAppStore = create<AppState>()(
       currentWorkspace: null,
       setCurrentWorkspace: (workspace) => set({ currentWorkspace: workspace }),
 
-      // Provider/model - defaults to Groq (free)
+      // Provider/model - defaults to Gemini (free)
       selectedProvider: {
-        CHAT: 'groq',
-        DESIGN: 'groq',
-        BUILD: 'groq',
+        CHAT: 'gemini',
+        DESIGN: 'gemini',
+        BUILD: 'gemini',
       },
       selectedModel: {
-        CHAT: 'llama-3.3-70b',
-        DESIGN: 'llama-3.3-70b',
-        BUILD: 'llama-3.3-70b',
+        CHAT: 'gemini-2.0-flash',
+        DESIGN: 'gemini-2.0-flash',
+        BUILD: 'gemini-2.0-flash',
       },
       setSelectedProvider: (mode, provider) =>
         set((state) => ({
