@@ -85,7 +85,10 @@ FILE OPERATIONS:
 - All files are created in /workspace
 - Use relative paths from /workspace
 
-IMPORTANT: When creating web applications, ALWAYS configure the server to listen on port 3000. This is non-negotiable.`;
+IMPORTANT: When creating web applications:
+1. ALWAYS configure the server to listen on port 3000. This is non-negotiable.
+2. ALWAYS include a root route (GET /) that serves an HTML page with the app's UI
+3. Don't just create API endpoints - create a usable web interface at the root URL`;
 }
 
 export function assembleSystemMessages(mode: Mode): string[] {

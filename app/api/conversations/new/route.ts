@@ -45,23 +45,15 @@ export async function POST(request: NextRequest) {
       // Create workspace directory on host
       fs.mkdirSync(hostPath, { recursive: true });
 
-      // Create workspace in database
+      // Create workspace in database (this also sets the correct previewUrlPath)
       const workspace = await workspaceRepo.create({
         userId: user.id,
         name: 'New Project',
         hostPath,
-        previewUrlPath: `/api/preview/${workspaceUuid}/`,
-      });
-
-      // Update workspace with correct preview URL path
-      await workspaceRepo.update(workspace.id, {
-        previewUrlPath: `/api/preview/${workspace.id}/`,
       });
 
       // Link workspace to conversation
-      await conversationRepo.update(conversation.id, {
-        workspaceId: workspace.id,
-      });
+      await conversationRepo.linkWorkspace(conversation.id, workspace.id);
 
       workspaceId = workspace.id;
     }

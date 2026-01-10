@@ -85,8 +85,13 @@ export function ChatPane({ mode }: ChatPaneProps) {
             setAutoApplyStatus(`Running command ${i + 1} of ${commands.length}...`);
             
             // Check if this looks like a server start command
-            const isServerCommand = /^(node|npm|npx|python|http-server|serve)\s/.test(cmd) &&
-              /(start|server|run dev|run start)/.test(cmd);
+            // Match: node app.js, npm start, npm run dev, python server.py, etc.
+            const isServerCommand = 
+              /^node\s+\S+\.js/.test(cmd) ||  // node something.js
+              /^npm\s+(start|run\s+(dev|start|server))/.test(cmd) ||  // npm start, npm run dev
+              /^npx\s+(serve|http-server)/.test(cmd) ||  // npx serve
+              /^python\s+.*server/.test(cmd) ||  // python server.py
+              /^(http-server|serve)\b/.test(cmd);  // http-server, serve
             
             if (isServerCommand) {
               // Start as daemon for server commands
