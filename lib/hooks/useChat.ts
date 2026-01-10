@@ -6,7 +6,11 @@ import { nanoid } from 'nanoid';
 import { useAppStore } from '../store';
 import { Mode, MessageData } from '../types';
 
-export function useChat(mode: Mode) {
+interface UseChatOptions {
+  onStreamComplete?: (content: string) => void;
+}
+
+export function useChat(mode: Mode, options?: UseChatOptions) {
   const queryClient = useQueryClient();
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -154,6 +158,11 @@ export function useChat(mode: Mode) {
             ...conversation,
             messages: [...(conversation.messages || []), userMessage, assistantMessage],
           });
+
+          // Call onStreamComplete callback if provided
+          if (options?.onStreamComplete) {
+            options.onStreamComplete(fullContent);
+          }
         }
       } catch (error) {
         if ((error as Error).name === 'AbortError') {

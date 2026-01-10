@@ -96,6 +96,7 @@ export async function GET(
       });
     } catch (proxyError) {
       console.error('Proxy error:', proxyError);
+      const errorMessage = proxyError instanceof Error ? proxyError.message : 'Unknown error';
       return new NextResponse(
         `
         <!DOCTYPE html>
@@ -116,10 +117,22 @@ export async function GET(
               .container {
                 text-align: center;
                 padding: 2rem;
+                max-width: 600px;
               }
               h1 { color: #ff6b6b; }
               p { color: #888; }
-              code { background: #2a2a3e; padding: 0.2rem 0.5rem; border-radius: 4px; }
+              code { background: #2a2a3e; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.9em; }
+              .debug { 
+                margin-top: 1.5rem; 
+                padding: 1rem; 
+                background: #2a2a3e; 
+                border-radius: 8px; 
+                text-align: left;
+                font-size: 0.85em;
+              }
+              .debug-title { color: #00d9ff; margin-bottom: 0.5rem; }
+              .debug-item { margin: 0.25rem 0; color: #aaa; }
+              .debug-value { color: #fff; }
             </style>
           </head>
           <body>
@@ -127,6 +140,18 @@ export async function GET(
               <h1>Connection Error</h1>
               <p>Could not connect to the preview server.</p>
               <p>Make sure your app is running on port <code>3000</code> inside the container.</p>
+              
+              <div class="debug">
+                <div class="debug-title">Debug Info</div>
+                <div class="debug-item">Target URL: <span class="debug-value">${targetUrl}</span></div>
+                <div class="debug-item">Workspace ID: <span class="debug-value">${workspaceId}</span></div>
+                <div class="debug-item">Exposed Port: <span class="debug-value">${workspace.exposedPort}</span></div>
+                <div class="debug-item">Error: <span class="debug-value">${errorMessage}</span></div>
+              </div>
+              
+              <p style="margin-top: 1.5rem; font-size: 0.9em;">
+                Tip: Start your server with a daemon process so it runs in the background.
+              </p>
             </div>
           </body>
         </html>

@@ -99,15 +99,17 @@ router.post('/:id/exec', async (req: Request, res: Response) => {
 // Apply patch
 router.post('/:id/applyPatch', async (req: Request, res: Response) => {
   try {
-    const { patch } = req.body;
+    const { patch, hostPath } = req.body;
 
     if (!patch) {
       return res.status(400).json({ error: 'Missing patch' });
     }
 
-    // Get workspace path
-    const workspacePath = `${WORKSPACE_BASE_PATH}/${req.params.id}`;
+    // Use provided hostPath or fall back to default
+    const workspacePath = hostPath || `${WORKSPACE_BASE_PATH}/${req.params.id}`;
 
+    console.log(`Applying patch to workspace: ${workspacePath}`);
+    
     const result = await applyPatch(workspacePath, patch);
     res.json(result);
   } catch (error) {
@@ -121,7 +123,8 @@ router.post('/:id/applyPatch', async (req: Request, res: Response) => {
 router.get('/:id/files', async (req: Request, res: Response) => {
   try {
     const relativePath = (req.query.path as string) || '/';
-    const workspacePath = `${WORKSPACE_BASE_PATH}/${req.params.id}`;
+    const hostPath = req.query.hostPath as string;
+    const workspacePath = hostPath || `${WORKSPACE_BASE_PATH}/${req.params.id}`;
 
     const result = await listFiles(workspacePath, relativePath);
     res.json(result);
@@ -136,12 +139,13 @@ router.get('/:id/files', async (req: Request, res: Response) => {
 router.get('/:id/files/read', async (req: Request, res: Response) => {
   try {
     const relativePath = req.query.path as string;
+    const hostPath = req.query.hostPath as string;
 
     if (!relativePath) {
       return res.status(400).json({ error: 'Missing path' });
     }
 
-    const workspacePath = `${WORKSPACE_BASE_PATH}/${req.params.id}`;
+    const workspacePath = hostPath || `${WORKSPACE_BASE_PATH}/${req.params.id}`;
     const result = await readFile(workspacePath, relativePath);
     res.json(result);
   } catch (error) {
@@ -154,13 +158,13 @@ router.get('/:id/files/read', async (req: Request, res: Response) => {
 // Write file
 router.put('/:id/files', async (req: Request, res: Response) => {
   try {
-    const { path: relativePath, content } = req.body;
+    const { path: relativePath, content, hostPath } = req.body;
 
     if (!relativePath || content === undefined) {
       return res.status(400).json({ error: 'Missing path or content' });
     }
 
-    const workspacePath = `${WORKSPACE_BASE_PATH}/${req.params.id}`;
+    const workspacePath = hostPath || `${WORKSPACE_BASE_PATH}/${req.params.id}`;
     await writeFile(workspacePath, relativePath, content);
     res.json({ success: true });
   } catch (error) {

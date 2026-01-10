@@ -13,7 +13,6 @@ import {
   Play,
   FileCode,
   Terminal,
-  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -223,7 +222,6 @@ function DiffBlock({
   isApplying?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [showReview, setShowReview] = useState(false);
 
   const canApply = mode === "BUILD" && onApply;
 
@@ -250,32 +248,27 @@ function DiffBlock({
               </Badge>
             )}
           </div>
+          {/* Auto-applied indicator for BUILD mode */}
+          {mode === "BUILD" && (
+            <Badge variant="outline" className="text-xs text-muted-foreground">
+              Auto-applied
+            </Badge>
+          )}
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowReview(true);
-            }}
-            className="h-7"
-          >
-            <Eye className="h-3.5 w-3.5 mr-1" />
-            Review
-          </Button>
           {canApply && (
             <Button
-              variant="default"
+              variant="ghost"
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
                 onApply(content);
               }}
               disabled={isApplying}
-              className="h-7"
+              className="h-7 text-xs"
+              title="Re-apply this change manually"
             >
-              {isApplying ? "Applying..." : "Apply"}
+              {isApplying ? "Applying..." : "Re-apply"}
             </Button>
           )}
           {expanded ? (
@@ -303,8 +296,6 @@ function DiffBlock({
           </SyntaxHighlighter>
         </div>
       )}
-
-      {/* Review Modal would go here */}
     </div>
   );
 }

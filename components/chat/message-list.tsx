@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import { User, Bot, AlertCircle } from "lucide-react";
+import { User, Bot, AlertCircle, Loader2, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MessageData, Mode } from "@/lib/types";
 import { MessageRenderer } from "./message-renderer";
@@ -16,6 +16,7 @@ interface MessageListProps {
   onRunCommand?: (command: string) => void;
   isApplying?: boolean;
   isExecuting?: boolean;
+  autoApplyStatus?: string | null;
 }
 
 export function MessageList({
@@ -27,6 +28,7 @@ export function MessageList({
   onRunCommand,
   isApplying,
   isExecuting,
+  autoApplyStatus,
 }: MessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -98,6 +100,22 @@ export function MessageList({
                   style={{ animationDelay: "0.4s" }}
                 />
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Auto-apply status indicator */}
+        {autoApplyStatus && (
+          <div className="flex justify-center animate-fade-in">
+            <div className="bg-primary/10 border border-primary/20 rounded-lg px-4 py-2 flex items-center gap-2 text-sm">
+              {autoApplyStatus.includes("Applied") || autoApplyStatus.includes("started") ? (
+                <CheckCircle className="w-4 h-4 text-green-500" />
+              ) : autoApplyStatus.includes("Error") ? (
+                <AlertCircle className="w-4 h-4 text-destructive" />
+              ) : (
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              )}
+              <span>{autoApplyStatus}</span>
             </div>
           </div>
         )}

@@ -307,6 +307,53 @@ The server runs on port 3000 inside the container, which is mapped to a dynamic 
 4. **Use unique daemon IDs** - starting a daemon with an existing ID will fail if it's running
 5. **Daemon status is monitored** - the system detects when daemons exit
 
+## Preview URL Scheme
+
+The preview pane uses a proxy system to display apps running inside Docker containers.
+
+### How Preview URLs Work
+
+```
+Browser → Next.js Proxy → Docker Container
+   ↓           ↓               ↓
+localhost:3000/api/preview/{workspaceId}/  →  127.0.0.1:{exposedPort}/
+```
+
+1. **Container Internal Port**: Apps run on port `3000` inside the container
+2. **Host Mapped Port**: Docker maps container port 3000 to a dynamic host port (10000, 10001, etc.)
+3. **Proxy URL**: The preview pane loads `/api/preview/{workspaceId}/` which proxies to the mapped host port
+
+### Preview URL Format
+
+| URL Type | Format | Example |
+|----------|--------|---------|
+| Proxy URL (use this) | `/api/preview/{workspaceId}/` | `http://localhost:3000/api/preview/abc123/` |
+| Direct URL (internal) | `http://127.0.0.1:{exposedPort}/` | `http://127.0.0.1:10000/` |
+
+### URL Bar Features
+
+The preview pane includes a URL bar that:
+- Shows the current preview URL
+- Allows you to navigate to different paths (e.g., `/api/preview/{id}/about`)
+- Has a **Go** button (→) to navigate
+- Has a **Refresh** button (↻) to reload the page
+
+### Debug Info
+
+If the preview shows a "Connection Error", the error page displays:
+- **Target URL**: The internal URL being proxied to
+- **Workspace ID**: The workspace identifier
+- **Exposed Port**: The host port mapped to container port 3000
+- **Error**: The specific connection error
+
+### Common Issues
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| 404 Error | No server running in container | Start your app as a daemon process |
+| Connection Error | App not listening on port 3000 | Ensure your app binds to port 3000 |
+| Wrong content | URL pointing to wrong location | Check the URL bar shows `/api/preview/{id}/` |
+
 ## Security
 
 - Containers run as non-root user with dropped capabilities

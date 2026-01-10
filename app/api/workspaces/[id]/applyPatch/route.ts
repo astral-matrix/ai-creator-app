@@ -39,13 +39,13 @@ export async function POST(
       );
     }
 
-    // Apply patch via runner
+    // Apply patch via runner - pass the actual hostPath
     const runnerResponse = await fetch(
       `${RUNNER_BASE_URL}/runner/workspaces/${id}/applyPatch`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patch }),
+        body: JSON.stringify({ patch, hostPath: workspace.hostPath }),
       }
     );
 

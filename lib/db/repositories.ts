@@ -223,11 +223,11 @@ export const workspaceRepo = {
       },
     });
 
-    // Update with preview URL path
+    // Update with preview URL path (points to the API proxy route)
     return prisma.workspace.update({
       where: { id: workspace.id },
       data: {
-        previewUrlPath: `/preview/${workspace.id}/`,
+        previewUrlPath: `/api/preview/${workspace.id}/`,
       },
     });
   },

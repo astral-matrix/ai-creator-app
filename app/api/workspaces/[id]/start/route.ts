@@ -67,7 +67,7 @@ export async function POST(
       success: true,
       containerId: result.containerId,
       exposedPort: result.exposedPort,
-      previewUrl: `/preview/${id}/`,
+      previewUrl: `/api/preview/${id}/`,
     });
   } catch (error) {
     console.error('Start workspace error:', error);

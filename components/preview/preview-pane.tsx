@@ -61,11 +61,27 @@ export function PreviewPane({
   // Update URL input when preview URL changes
   useEffect(() => {
     if (previewUrl && isRunning) {
-      const fullUrl = `${window.location.origin}${previewUrl}`;
+      // Ensure the URL goes through the API proxy route
+      let proxyPath = previewUrl;
+      if (!proxyPath.startsWith('/api/')) {
+        proxyPath = `/api${proxyPath}`;
+      }
+      const fullUrl = `${window.location.origin}${proxyPath}`;
       setUrlInput(fullUrl);
       setCurrentUrl(fullUrl);
+      
+      // Log the exposed port info
+      if (workspace?.exposedPort) {
+        setLogs((prev) => {
+          const portMsg = `[${new Date().toLocaleTimeString()}] Container port 3000 mapped to host port ${workspace.exposedPort}`;
+          if (!prev.includes(portMsg)) {
+            return [...prev, portMsg];
+          }
+          return prev;
+        });
+      }
     }
-  }, [previewUrl, isRunning]);
+  }, [previewUrl, isRunning, workspace?.exposedPort]);
 
   const handleCreate = () => {
     if (onCreateWorkspace) {

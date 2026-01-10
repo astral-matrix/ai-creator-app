@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { userRepo, conversationRepo } from '@/lib/db/repositories';
+import { userRepo, conversationRepo, workspaceRepo } from '@/lib/db/repositories';
 import { Mode, Provider } from '@/lib/types';
+import { v4 as uuidv4 } from 'uuid';
+import * as fs from 'fs';
+import * as path from 'path';
+
+const WORKSPACE_HOST_PATH = process.env.WORKSPACE_HOST_PATH || '/tmp/ai-creator-workspaces';
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,6 +35,37 @@ export async function POST(request: NextRequest) {
       model,
     });
 
+    let workspaceId: string | null = null;
+
+    // For BUILD mode, automatically create a workspace
+    if (mode === 'BUILD') {
+      const workspaceUuid = uuidv4();
+      const hostPath = path.join(WORKSPACE_HOST_PATH, workspaceUuid);
+
+      // Create workspace directory on host
+      fs.mkdirSync(hostPath, { recursive: true });
+
+      // Create workspace in database
+      const workspace = await workspaceRepo.create({
+        userId: user.id,
+        name: 'New Project',
+        hostPath,
+        previewUrlPath: `/api/preview/${workspaceUuid}/`,
+      });
+
+      // Update workspace with correct preview URL path
+      await workspaceRepo.update(workspace.id, {
+        previewUrlPath: `/api/preview/${workspace.id}/`,
+      });
+
+      // Link workspace to conversation
+      await conversationRepo.update(conversation.id, {
+        workspaceId: workspace.id,
+      });
+
+      workspaceId = workspace.id;
+    }
+
     // Update user preferences to set this as current conversation for the mode
     const prefKey = `currentConversationId${mode.charAt(0) + mode.slice(1).toLowerCase()}`;
     await userRepo.updatePreferences(user.id, {
@@ -42,7 +78,7 @@ export async function POST(request: NextRequest) {
       title: conversation.title,
       provider: conversation.provider,
       model: conversation.model,
-      workspaceId: conversation.workspaceId,
+      workspaceId: workspaceId,
       createdAt: conversation.createdAt.toISOString(),
       updatedAt: conversation.updatedAt.toISOString(),
       messageCount: 0,

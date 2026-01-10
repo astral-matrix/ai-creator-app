@@ -121,8 +121,30 @@ export function extractDiffPatch(content: string): string | null {
   return match ? match[1] : null;
 }
 
+export function extractAllDiffPatches(content: string): string[] {
+  // Extract all diff blocks from a message
+  const diffs: string[] = [];
+  const regex = /```diff\n([\s\S]*?)```/g;
+  let match;
+  while ((match = regex.exec(content)) !== null) {
+    diffs.push(match[1]);
+  }
+  return diffs;
+}
+
 export function extractCommand(content: string): string | null {
   // Extract command from Auto-Ran command block
   const match = content.match(/Auto-Ran command:.*?\n```(?:bash|sh|shell)?\n([\s\S]*?)```/);
   return match ? match[1].trim() : null;
+}
+
+export function extractAllCommands(content: string): string[] {
+  // Extract all Auto-Ran commands from a message
+  const commands: string[] = [];
+  const regex = /Auto-Ran command:.*?\n```(?:bash|sh|shell)?\n([\s\S]*?)```/g;
+  let match;
+  while ((match = regex.exec(content)) !== null) {
+    commands.push(match[1].trim());
+  }
+  return commands;
 }

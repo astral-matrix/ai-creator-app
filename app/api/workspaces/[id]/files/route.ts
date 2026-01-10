@@ -36,9 +36,9 @@ export async function GET(
       );
     }
 
-    // Get files from runner
+    // Get files from runner - pass hostPath
     const runnerResponse = await fetch(
-      `${RUNNER_BASE_URL}/runner/workspaces/${id}/files?path=${encodeURIComponent(path)}`,
+      `${RUNNER_BASE_URL}/runner/workspaces/${id}/files?path=${encodeURIComponent(path)}&hostPath=${encodeURIComponent(workspace.hostPath)}`,
       { method: 'GET' }
     );
 
@@ -97,13 +97,13 @@ export async function PUT(
       );
     }
 
-    // Write file via runner
+    // Write file via runner - pass hostPath
     const runnerResponse = await fetch(
       `${RUNNER_BASE_URL}/runner/workspaces/${id}/files`,
       {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path, content }),
+        body: JSON.stringify({ path, content, hostPath: workspace.hostPath }),
       }
     );
 

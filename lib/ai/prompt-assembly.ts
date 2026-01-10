@@ -55,6 +55,39 @@ npm install
 CRITICAL: Never claim execution occurred. The user must click Run/Apply in the UI. Wait for system confirmation before acknowledging execution.`;
 }
 
+export function getSandboxEnvironmentGuidance(): string {
+  return `SANDBOX ENVIRONMENT CONSTRAINTS:
+
+Your code runs in an isolated Docker container with the following constraints:
+
+PORT REQUIREMENTS:
+- Web servers MUST listen on port 3000 (this is the ONLY exposed port)
+- Do NOT use ports 8080, 8000, 5000, or any other port
+- The preview pane can ONLY display apps running on port 3000
+- Example: app.listen(3000) or server.listen(3000)
+
+AVAILABLE TOOLS:
+- Node.js 20 with npm and pnpm
+- Python 3 with pip
+- Git, curl, bash
+
+RESOURCE LIMITS:
+- 512MB RAM
+- 50% CPU
+- Working directory: /workspace
+
+DAEMON PROCESSES:
+- Long-running servers (like web apps) should be started as daemon processes
+- Regular commands wait for completion and will timeout for servers
+- The system will handle daemon management automatically
+
+FILE OPERATIONS:
+- All files are created in /workspace
+- Use relative paths from /workspace
+
+IMPORTANT: When creating web applications, ALWAYS configure the server to listen on port 3000. This is non-negotiable.`;
+}
+
 export function assembleSystemMessages(mode: Mode): string[] {
   const messages: string[] = [];
 
@@ -67,6 +100,8 @@ export function assembleSystemMessages(mode: Mode): string[] {
   // System #3: Build mode output guidance (only for BUILD mode)
   if (mode === 'BUILD') {
     messages.push(getBuildModeOutputGuidance());
+    // System #4: Sandbox environment constraints
+    messages.push(getSandboxEnvironmentGuidance());
   }
 
   return messages;
