@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Mode, Provider, ConversationWithMessages, WorkspaceData } from './types';
+import { Mode, Provider, ConversationWithMessages } from './types';
+
+// Streaming state per mode
+interface StreamingState {
+  isStreaming: boolean;
+  content: string;
+}
 
 interface AppState {
   // User
@@ -15,16 +21,11 @@ interface AppState {
   conversations: Record<Mode, ConversationWithMessages | null>;
   setConversation: (mode: Mode, conversation: ConversationWithMessages | null) => void;
 
-  // Streaming state
-  isStreaming: boolean;
-  setIsStreaming: (streaming: boolean) => void;
-  streamingContent: string;
-  setStreamingContent: (content: string) => void;
-  appendStreamingContent: (text: string) => void;
-
-  // Workspace
-  currentWorkspace: WorkspaceData | null;
-  setCurrentWorkspace: (workspace: WorkspaceData | null) => void;
+  // Streaming state (per mode)
+  streaming: Record<Mode, StreamingState>;
+  setIsStreaming: (mode: Mode, streaming: boolean) => void;
+  setStreamingContent: (mode: Mode, content: string) => void;
+  appendStreamingContent: (mode: Mode, text: string) => void;
 
   // Provider/model selection (per mode)
   selectedProvider: Record<Mode, Provider>;
@@ -42,6 +43,12 @@ interface AppState {
   drafts: Record<Mode, string>;
   setDraft: (mode: Mode, content: string) => void;
 }
+
+const initialStreamingState: Record<Mode, StreamingState> = {
+  CHAT: { isStreaming: false, content: '' },
+  DESIGN: { isStreaming: false, content: '' },
+  BUILD: { isStreaming: false, content: '' },
+};
 
 export const useAppStore = create<AppState>()(
   persist(
@@ -61,32 +68,45 @@ export const useAppStore = create<AppState>()(
         BUILD: null,
       },
       setConversation: (mode, conversation) =>
-        set((state) => {
-          // Clear workspace when switching to a different conversation
-          const currentConv = state.conversations[mode];
-          const workspaceChanged = currentConv?.workspaceId !== conversation?.workspaceId;
-          
-          return {
-            conversations: {
-              ...state.conversations,
-              [mode]: conversation,
+        set((state) => ({
+          conversations: {
+            ...state.conversations,
+            [mode]: conversation,
+          },
+        })),
+
+      // Streaming (per mode)
+      streaming: initialStreamingState,
+      setIsStreaming: (mode, isStreaming) =>
+        set((state) => ({
+          streaming: {
+            ...state.streaming,
+            [mode]: {
+              ...state.streaming[mode],
+              isStreaming,
             },
-            // Clear workspace if switching to a conversation with a different workspace
-            ...(workspaceChanged ? { currentWorkspace: null } : {}),
-          };
-        }),
-
-      // Streaming
-      isStreaming: false,
-      setIsStreaming: (streaming) => set({ isStreaming: streaming }),
-      streamingContent: '',
-      setStreamingContent: (content) => set({ streamingContent: content }),
-      appendStreamingContent: (text) =>
-        set((state) => ({ streamingContent: state.streamingContent + text })),
-
-      // Workspace
-      currentWorkspace: null,
-      setCurrentWorkspace: (workspace) => set({ currentWorkspace: workspace }),
+          },
+        })),
+      setStreamingContent: (mode, content) =>
+        set((state) => ({
+          streaming: {
+            ...state.streaming,
+            [mode]: {
+              ...state.streaming[mode],
+              content,
+            },
+          },
+        })),
+      appendStreamingContent: (mode, text) =>
+        set((state) => ({
+          streaming: {
+            ...state.streaming,
+            [mode]: {
+              ...state.streaming[mode],
+              content: state.streaming[mode].content + text,
+            },
+          },
+        })),
 
       // Provider/model - defaults to Gemini (free)
       selectedProvider: {

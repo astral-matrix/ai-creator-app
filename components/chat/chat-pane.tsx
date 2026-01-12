@@ -16,11 +16,13 @@ interface ChatPaneProps {
   mode: Mode;
 }
 
-export function ChatPane({ mode }: ChatPaneProps) {
-  const { setSelectedProvider, setSelectedModel, conversations } = useAppStore();
-  const conversation = conversations[mode];
+// Separate component for BUILD mode workspace functionality
+function useBuildModeWorkspace(mode: Mode, conversationWorkspaceId?: string | null) {
   const [autoApplyStatus, setAutoApplyStatus] = useState<string | null>(null);
-
+  
+  // Only fetch workspace data for BUILD mode
+  const workspaceHook = useWorkspace(mode === "BUILD" ? conversationWorkspaceId : null);
+  
   const { 
     execCommand, 
     applyPatch, 
@@ -30,11 +32,11 @@ export function ChatPane({ mode }: ChatPaneProps) {
     startDaemon,
     startWorkspace,
     refetch: refetchWorkspace,
-  } = useWorkspace(conversation?.workspaceId);
+  } = workspaceHook;
 
-  // Auto-apply diffs and run commands when AI finishes in BUILD mode
+  // Auto-apply handler - only active for BUILD mode
   const handleStreamComplete = useCallback(
-    async (content: string) => {
+    async (content: string, conversationId?: string) => {
       if (mode !== "BUILD") return;
 
       // Extract all diffs and commands
@@ -58,7 +60,7 @@ export function ChatPane({ mode }: ChatPaneProps) {
           setAutoApplyStatus(`Applying file ${i + 1} of ${diffs.length}...`);
           const result = await applyPatch({
             patch: diffs[i],
-            conversationId: conversation?.id,
+            conversationId,
           });
           if (!result.success) {
             console.error(`Failed to apply diff ${i + 1}:`, result.errors);
@@ -86,16 +88,14 @@ export function ChatPane({ mode }: ChatPaneProps) {
             setAutoApplyStatus(`Running command ${i + 1} of ${commands.length}...`);
             
             // Check if this looks like a server start command
-            // Match: node app.js, npm start, npm run dev, python server.py, etc.
             const isServerCommand = 
-              /^node\s+\S+\.js/.test(cmd) ||  // node something.js
-              /^npm\s+(start|run\s+(dev|start|server))/.test(cmd) ||  // npm start, npm run dev
-              /^npx\s+(serve|http-server)/.test(cmd) ||  // npx serve
-              /^python\s+.*server/.test(cmd) ||  // python server.py
-              /^(http-server|serve)\b/.test(cmd);  // http-server, serve
+              /^node\s+\S+\.js/.test(cmd) ||
+              /^npm\s+(start|run\s+(dev|start|server))/.test(cmd) ||
+              /^npx\s+(serve|http-server)/.test(cmd) ||
+              /^python\s+.*server/.test(cmd) ||
+              /^(http-server|serve)\b/.test(cmd);
             
             if (isServerCommand) {
-              // Start as daemon for server commands
               try {
                 await startDaemon({
                   daemonId: `server-${Date.now()}`,
@@ -104,14 +104,12 @@ export function ChatPane({ mode }: ChatPaneProps) {
                 setAutoApplyStatus("Server started as background process");
               } catch (err) {
                 console.error("Failed to start daemon:", err);
-                // Fall back to regular exec
-                await execCommand({ command: cmd, conversationId: conversation?.id });
+                await execCommand({ command: cmd, conversationId });
               }
             } else {
-              // Regular command execution
               const result = await execCommand({
                 command: cmd,
-                conversationId: conversation?.id,
+                conversationId,
               });
               if (result.exitCode !== 0) {
                 console.error(`Command failed:`, result.stderr);
@@ -124,7 +122,6 @@ export function ChatPane({ mode }: ChatPaneProps) {
           `Applied ${diffs.length} file(s)${commands.length > 0 ? `, ran ${commands.length} command(s)` : ""}`
         );
         
-        // Clear status after a delay
         setTimeout(() => setAutoApplyStatus(null), 3000);
       } catch (error) {
         console.error("Auto-apply error:", error);
@@ -132,7 +129,57 @@ export function ChatPane({ mode }: ChatPaneProps) {
         setTimeout(() => setAutoApplyStatus(null), 3000);
       }
     },
-    [mode, workspace, applyPatch, execCommand, startDaemon, startWorkspace, refetchWorkspace, conversation?.id]
+    [mode, workspace, applyPatch, execCommand, startDaemon, startWorkspace, refetchWorkspace]
+  );
+
+  // Auto-start workspace when first message is sent
+  const autoStartWorkspace = useCallback(() => {
+    if (mode === "BUILD" && workspace && workspace.status !== "running") {
+      setAutoApplyStatus("Starting workspace...");
+      try {
+        startWorkspace();
+      } catch (err) {
+        console.error("Failed to auto-start workspace:", err);
+      }
+    }
+  }, [mode, workspace, startWorkspace]);
+
+  return {
+    workspace: mode === "BUILD" ? workspace : null,
+    isExecuting: mode === "BUILD" ? isExecuting : false,
+    isApplying: mode === "BUILD" ? isApplying : false,
+    autoApplyStatus: mode === "BUILD" ? autoApplyStatus : null,
+    handleStreamComplete: mode === "BUILD" ? handleStreamComplete : undefined,
+    autoStartWorkspace: mode === "BUILD" ? autoStartWorkspace : undefined,
+    applyPatch: mode === "BUILD" ? applyPatch : null,
+    execCommand: mode === "BUILD" ? execCommand : null,
+  };
+}
+
+export function ChatPane({ mode }: ChatPaneProps) {
+  const { setSelectedProvider, setSelectedModel, conversations } = useAppStore();
+  const conversation = conversations[mode];
+
+  // Use BUILD mode workspace features conditionally
+  const {
+    workspace,
+    isExecuting,
+    isApplying,
+    autoApplyStatus,
+    handleStreamComplete,
+    autoStartWorkspace,
+    applyPatch,
+    execCommand,
+  } = useBuildModeWorkspace(mode, conversation?.workspaceId);
+
+  // Create the stream complete handler that includes conversationId
+  const onStreamComplete = useCallback(
+    (content: string) => {
+      if (handleStreamComplete) {
+        handleStreamComplete(content, conversation?.id);
+      }
+    },
+    [handleStreamComplete, conversation?.id]
   );
 
   const {
@@ -147,7 +194,7 @@ export function ChatPane({ mode }: ChatPaneProps) {
     provider,
     model,
     title,
-  } = useChat(mode, { onStreamComplete: handleStreamComplete });
+  } = useChat(mode, { onStreamComplete: mode === "BUILD" ? onStreamComplete : undefined });
 
   const { startNewChat } = useConversation(mode);
   const { conversations: allConversations, isLoading: isLoadingConversations, selectConversation } = useConversations(mode);
@@ -171,14 +218,8 @@ export function ChatPane({ mode }: ChatPaneProps) {
   const handleSend = async () => {
     if (draft.trim()) {
       // Auto-start workspace in BUILD mode when first message is sent
-      if (mode === "BUILD" && workspace && workspace.status !== "running") {
-        setAutoApplyStatus("Starting workspace...");
-        try {
-          startWorkspace();
-          // Don't wait - let it start in background while message is sent
-        } catch (err) {
-          console.error("Failed to auto-start workspace:", err);
-        }
+      if (autoStartWorkspace) {
+        autoStartWorkspace();
       }
       sendMessage(draft);
     }
@@ -186,7 +227,7 @@ export function ChatPane({ mode }: ChatPaneProps) {
 
   const handleApplyDiff = useCallback(
     async (patch: string) => {
-      if (!workspace) {
+      if (!workspace || !applyPatch) {
         alert("No workspace available. Create a workspace first.");
         return;
       }
@@ -198,7 +239,7 @@ export function ChatPane({ mode }: ChatPaneProps) {
         if (!result.success) {
           alert(`Failed to apply patch: ${result.errors?.join(", ")}`);
         }
-      } catch (error) {
+      } catch {
         alert("Failed to apply patch");
       }
     },
@@ -207,7 +248,7 @@ export function ChatPane({ mode }: ChatPaneProps) {
 
   const handleRunCommand = useCallback(
     async (command: string) => {
-      if (!workspace) {
+      if (!workspace || !execCommand) {
         alert("No workspace available. Create a workspace first.");
         return;
       }
@@ -223,7 +264,7 @@ export function ChatPane({ mode }: ChatPaneProps) {
         if (result.exitCode !== 0) {
           console.error("Command failed:", result.stderr);
         }
-      } catch (error) {
+      } catch {
         alert("Failed to execute command");
       }
     },

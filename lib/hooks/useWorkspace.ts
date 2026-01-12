@@ -1,12 +1,11 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
 import { useAppStore } from '../store';
 import { WorkspaceData, ExecResult, PatchResult, DaemonInfo } from '../types';
 
 export function useWorkspace(workspaceId?: string | null) {
-  const { userId, currentWorkspace, setCurrentWorkspace } = useAppStore();
+  const { userId } = useAppStore();
   const queryClient = useQueryClient();
 
   const query = useQuery({
@@ -30,15 +29,6 @@ export function useWorkspace(workspaceId?: string | null) {
       return query.state.data?.status === 'running' ? 5000 : 30000;
     },
   });
-
-  // Update store when data changes - use useEffect to avoid setState during render
-  useEffect(() => {
-    if (query.data) {
-      if (JSON.stringify(query.data) !== JSON.stringify(currentWorkspace)) {
-        setCurrentWorkspace(query.data);
-      }
-    }
-  }, [query.data, currentWorkspace, setCurrentWorkspace]);
 
   const createMutation = useMutation({
     mutationFn: async ({
@@ -64,8 +54,7 @@ export function useWorkspace(workspaceId?: string | null) {
 
       return res.json();
     },
-    onSuccess: (data) => {
-      setCurrentWorkspace(data);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workspace'] });
     },
   });
@@ -285,8 +274,9 @@ export function useWorkspace(workspaceId?: string | null) {
     return data.logs;
   };
 
+  // Return query.data directly - no global state sync
   return {
-    workspace: currentWorkspace || query.data,
+    workspace: query.data,
     isLoading: query.isLoading,
     error: query.error,
     refetch: query.refetch,

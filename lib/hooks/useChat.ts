@@ -19,9 +19,8 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
     userId,
     conversations,
     setConversation,
-    isStreaming,
+    streaming,
     setIsStreaming,
-    streamingContent,
     setStreamingContent,
     appendStreamingContent,
     selectedProvider,
@@ -34,6 +33,10 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
   const provider = selectedProvider[mode];
   const model = selectedModel[mode];
   const draft = drafts[mode];
+  
+  // Get streaming state for this specific mode
+  const isStreaming = streaming[mode].isStreaming;
+  const streamingContent = streaming[mode].content;
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -96,10 +99,10 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
           throw new Error('Failed to send message');
         }
 
-        // Start streaming state
+        // Start streaming state (mode-specific)
         setIsSending(false);
-        setIsStreaming(true);
-        setStreamingContent('');
+        setIsStreaming(mode, true);
+        setStreamingContent(mode, '');
 
         const reader = response.body?.getReader();
         if (!reader) {
@@ -157,7 +160,7 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
 
                 if (data.text) {
                   fullContent += data.text;
-                  appendStreamingContent(data.text);
+                  appendStreamingContent(mode, data.text);
                 }
               } catch {
                 // Skip malformed JSON
@@ -225,8 +228,8 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
         }
       } finally {
         setIsSending(false);
-        setIsStreaming(false);
-        setStreamingContent('');
+        setIsStreaming(mode, false);
+        setStreamingContent(mode, '');
         abortControllerRef.current = null;
 
         // Refresh data from server
@@ -256,15 +259,15 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       setIsSending(false);
-      setIsStreaming(false);
-      setStreamingContent('');
+      setIsStreaming(mode, false);
+      setStreamingContent(mode, '');
     }
-  }, [setIsStreaming, setStreamingContent]);
+  }, [mode, setIsStreaming, setStreamingContent]);
 
   return {
     messages: conversation?.messages || [],
     isStreaming,
-    isSending, // New: true while waiting for server to create conversation
+    isSending,
     streamingContent,
     draft,
     setDraft: (content: string) => setDraft(mode, content),
