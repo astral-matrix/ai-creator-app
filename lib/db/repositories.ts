@@ -153,6 +153,17 @@ export const conversationRepo = {
       data: { provider, model },
     });
   },
+
+  async delete(id: string) {
+    // Delete all messages first (cascade)
+    await prisma.message.deleteMany({
+      where: { conversationId: id },
+    });
+    // Then delete the conversation
+    return prisma.conversation.delete({
+      where: { id },
+    });
+  },
 };
 
 // Message repository

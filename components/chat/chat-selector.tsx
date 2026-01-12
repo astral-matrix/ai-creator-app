@@ -1,25 +1,22 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronDown, MessageSquare, Plus, Loader2 } from "lucide-react";
+import { ChevronDown, MessageSquare, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { ConversationSummary, Mode } from "@/lib/types";
+import { ConversationSummary } from "@/lib/types";
 
 interface ChatSelectorProps {
   currentTitle?: string | null;
   currentId?: string | null;
   conversations: ConversationSummary[];
   isLoading?: boolean;
-  isCreating?: boolean;
-  onNewChat: () => void;
   onSelectChat: (conversationId: string) => void;
 }
 
@@ -28,13 +25,18 @@ export function ChatSelector({
   currentId,
   conversations,
   isLoading,
-  isCreating,
-  onNewChat,
   onSelectChat,
 }: ChatSelectorProps) {
   const [open, setOpen] = useState(false);
 
-  const displayTitle = currentTitle || "New conversation";
+  // Don't render if there's no history
+  if (!isLoading && conversations.length === 0) {
+    return null;
+  }
+
+  // Show "Chat History" unless we have a real title (non-empty conversation with title)
+  const hasRealTitle = currentTitle && currentTitle.trim().length > 0;
+  const displayTitle = hasRealTitle ? currentTitle : "Chat History";
   const truncatedTitle =
     displayTitle.length > 25
       ? displayTitle.substring(0, 25) + "..."
@@ -52,36 +54,10 @@ export function ChatSelector({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[280px]">
-        {/* New Chat option */}
-        <DropdownMenuItem
-          onClick={() => {
-            onNewChat();
-            setOpen(false);
-          }}
-          disabled={isCreating}
-          className="gap-2"
-        >
-          {isCreating ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Plus className="h-4 w-4" />
-          )}
-          <span>New Chat</span>
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator />
-
         {/* Loading state */}
         {isLoading && (
           <div className="flex items-center justify-center py-4">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          </div>
-        )}
-
-        {/* Empty state */}
-        {!isLoading && conversations.length === 0 && (
-          <div className="py-4 text-center text-sm text-muted-foreground">
-            No previous chats
           </div>
         )}
 
@@ -102,7 +78,7 @@ export function ChatSelector({
               <MessageSquare className="h-4 w-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
               <div className="flex-1 min-w-0">
                 <div className="truncate text-sm font-medium">
-                  {conv.title || "Untitled chat"}
+                  {conv.title || "Untitled"}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {conv.messageCount} messages •{" "}

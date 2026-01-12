@@ -72,8 +72,6 @@ export function ChatHeader({
             currentId={conversationId}
             conversations={conversations}
             isLoading={isLoadingConversations}
-            isCreating={isCreating}
-            onNewChat={onNewChat}
             onSelectChat={onSelectChat}
           />
         </div>

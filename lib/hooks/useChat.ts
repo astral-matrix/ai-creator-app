@@ -56,8 +56,15 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
         createdAt: new Date().toISOString(),
       };
 
+      // If this is the first message, set title immediately (optimistic update)
+      const isFirstMessage = !conversation.messages || conversation.messages.length === 0;
+      const newTitle = isFirstMessage 
+        ? content.trim().slice(0, 30) + (content.trim().length > 30 ? '...' : '')
+        : conversation.title;
+
       setConversation(mode, {
         ...conversation,
+        title: newTitle,
         messages: [...(conversation.messages || []), userMessage],
       });
 
@@ -156,6 +163,7 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
 
           setConversation(mode, {
             ...conversation,
+            title: newTitle,
             messages: [...(conversation.messages || []), userMessage, assistantMessage],
           });
 
@@ -188,6 +196,7 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
 
         setConversation(mode, {
           ...conversation,
+          title: newTitle,
           messages: [...(conversation.messages || []), userMessage, errorMessage],
         });
       } finally {
@@ -198,6 +207,10 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
         // Refetch to sync with server
         queryClient.invalidateQueries({
           queryKey: ['conversation', mode, conversation.id],
+        });
+        // Also refresh conversations list (for updated title/message count)
+        queryClient.invalidateQueries({
+          queryKey: ['conversations'],
         });
       }
     },

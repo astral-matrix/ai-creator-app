@@ -131,3 +131,47 @@ export async function PATCH(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const searchParams = request.nextUrl.searchParams;
+    const anonUserId = searchParams.get('anonUserId');
+
+    if (!anonUserId) {
+      return NextResponse.json(
+        { error: 'Missing anonUserId' },
+        { status: 400 }
+      );
+    }
+
+    const conversation = await conversationRepo.findById(id);
+
+    if (!conversation) {
+      return NextResponse.json(
+        { error: 'Conversation not found' },
+        { status: 404 }
+      );
+    }
+
+    if (conversation.userId !== anonUserId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      );
+    }
+
+    await conversationRepo.delete(id);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Delete conversation error:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete conversation' },
+      { status: 500 }
+    );
+  }
+}

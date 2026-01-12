@@ -5,6 +5,12 @@ import { useEffect } from 'react';
 import { useAppStore } from '../store';
 import { Mode, ConversationWithMessages, Provider } from '../types';
 
+// A conversation is empty if it has no messages
+function isEmpty(conv: ConversationWithMessages | null): boolean {
+  if (!conv) return false;
+  return !conv.messages || conv.messages.length === 0;
+}
+
 export function useConversation(mode: Mode) {
   const { userId, conversations, setConversation } = useAppStore();
   const queryClient = useQueryClient();
@@ -51,6 +57,10 @@ export function useConversation(mode: Mode) {
       provider: Provider;
       model: string;
     }) => {
+      // Check if current conversation is empty and should be deleted
+      const shouldDeleteCurrent = isEmpty(conversation);
+      const currentId = conversation?.id;
+
       const res = await fetch('/api/conversations/new', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -66,11 +76,20 @@ export function useConversation(mode: Mode) {
         throw new Error('Failed to create conversation');
       }
 
+      // Delete the empty placeholder conversation if needed
+      if (shouldDeleteCurrent && currentId) {
+        await fetch(
+          `/api/conversations/${currentId}?anonUserId=${userId}`,
+          { method: 'DELETE' }
+        ).catch(console.error); // Don't fail if delete fails
+      }
+
       return res.json();
     },
     onSuccess: (data) => {
       setConversation(mode, { ...data, messages: [] });
       queryClient.invalidateQueries({ queryKey: ['conversation', mode] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
   });
 

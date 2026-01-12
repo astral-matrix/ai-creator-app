@@ -147,9 +147,11 @@ export async function POST(request: NextRequest) {
             await messageRepo.updateUsage(assistantMessage.id, tokenIn, tokenOut);
           }
 
-          // Auto-generate title if this is the first exchange
-          if (conversation.messages.length === 0 && !conversation.title) {
-            const title = message.content.slice(0, 50) + (message.content.length > 50 ? '...' : '');
+          // Auto-generate title if this is the first message or has placeholder title
+          const isPlaceholderTitle = !conversation.title || conversation.title.startsWith('Untitled-');
+          if (conversation.messages.length === 0 && isPlaceholderTitle) {
+            // Use first ~30 chars of the user's message as title
+            const title = message.content.slice(0, 30) + (message.content.length > 30 ? '...' : '');
             await conversationRepo.updateTitle(conversationId, title);
           }
 

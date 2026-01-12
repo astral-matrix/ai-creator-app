@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     // Verify user exists
     const user = await userRepo.findOrCreate(anonUserId);
 
-    // Create new conversation
+    // Create new conversation (title will be set on first message)
     const conversation = await conversationRepo.create({
       userId: user.id,
       mode,

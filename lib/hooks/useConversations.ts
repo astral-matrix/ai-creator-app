@@ -4,8 +4,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAppStore } from "../store";
 import { Mode, ConversationSummary, ConversationWithMessages } from "../types";
 
+// A conversation is empty if it has no messages
+function isEmpty(conv: ConversationWithMessages | null): boolean {
+  if (!conv) return false;
+  return !conv.messages || conv.messages.length === 0;
+}
+
 export function useConversations(mode?: Mode) {
-  const { userId, setConversation } = useAppStore();
+  const { userId, conversations, setConversation } = useAppStore();
   const queryClient = useQueryClient();
 
   // Fetch all conversations for the user (optionally filtered by mode)
@@ -42,6 +48,10 @@ export function useConversations(mode?: Mode) {
     }) => {
       if (!userId) throw new Error("No user ID");
 
+      // Check if current conversation is empty and should be deleted
+      const currentConv = conversations[targetMode];
+      const shouldDeleteCurrent = isEmpty(currentConv) && currentConv?.id !== conversationId;
+
       // Fetch the full conversation with messages
       const res = await fetch(
         `/api/conversations/${conversationId}?anonUserId=${userId}`
@@ -52,6 +62,14 @@ export function useConversations(mode?: Mode) {
       }
 
       const conversation: ConversationWithMessages = await res.json();
+
+      // Delete the empty placeholder conversation if needed
+      if (shouldDeleteCurrent && currentConv?.id) {
+        await fetch(
+          `/api/conversations/${currentConv.id}?anonUserId=${userId}`,
+          { method: "DELETE" }
+        ).catch(console.error); // Don't fail if delete fails
+      }
 
       // Update user preferences to set this as current conversation
       await fetch("/api/bootstrap", {
