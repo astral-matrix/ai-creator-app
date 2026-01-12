@@ -34,6 +34,9 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
   const model = selectedModel[mode];
   const draft = drafts[mode];
 
+  // Helper to get fresh conversation state (avoids stale closures)
+  const getConversation = () => useAppStore.getState().conversations[mode];
+
   const sendMessage = useCallback(
     async (content: string) => {
       if (!userId || !conversation?.id || isStreaming || !content.trim()) {
@@ -146,8 +149,9 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
           }
         }
 
-        // Add assistant message to conversation
+        // Add assistant message to conversation (use fresh state)
         if (assistantMessageId && fullContent) {
+          const currentConv = getConversation();
           const assistantMessage: MessageData = {
             id: assistantMessageId,
             conversationId: conversation.id,
@@ -162,9 +166,8 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
           };
 
           setConversation(mode, {
-            ...conversation,
-            title: newTitle,
-            messages: [...(conversation.messages || []), userMessage, assistantMessage],
+            ...currentConv,
+            messages: [...(currentConv?.messages || []), assistantMessage],
           });
 
           // Call onStreamComplete callback if provided
@@ -180,7 +183,8 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
 
         console.error('Chat error:', error);
 
-        // Add error message
+        // Add error message (use fresh state)
+        const currentConv = getConversation();
         const errorMessage: MessageData = {
           id: nanoid(),
           conversationId: conversation.id,
@@ -195,9 +199,8 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
         };
 
         setConversation(mode, {
-          ...conversation,
-          title: newTitle,
-          messages: [...(conversation.messages || []), userMessage, errorMessage],
+          ...currentConv,
+          messages: [...(currentConv?.messages || []), errorMessage],
         });
       } finally {
         setIsStreaming(false);

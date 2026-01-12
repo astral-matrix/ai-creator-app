@@ -29,14 +29,18 @@ export function ChatSelector({
 }: ChatSelectorProps) {
   const [open, setOpen] = useState(false);
 
-  // Don't render if there's no history
-  if (!isLoading && conversations.length === 0) {
-    return null;
-  }
-
-  // Show "Chat History" unless we have a real title (non-empty conversation with title)
+  // Show title if we have one, otherwise "Chat History" (for dropdown) or "New conversation" (for display)
   const hasRealTitle = currentTitle && currentTitle.trim().length > 0;
   const displayTitle = hasRealTitle ? currentTitle : "Chat History";
+  
+  // Don't render dropdown if there's no history - just show the title
+  if (!isLoading && conversations.length === 0) {
+    return (
+      <span className="h-8 px-3 flex items-center text-sm font-medium text-muted-foreground truncate max-w-[200px]">
+        {hasRealTitle ? currentTitle : "New conversation"}
+      </span>
+    );
+  }
   const truncatedTitle =
     displayTitle.length > 25
       ? displayTitle.substring(0, 25) + "..."
