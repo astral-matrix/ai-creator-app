@@ -98,6 +98,21 @@ export const conversationRepo = {
     });
   },
 
+  async findByUser(userId: string, mode?: Mode | null) {
+    return prisma.conversation.findMany({
+      where: {
+        userId,
+        ...(mode ? { mode } : {}),
+      },
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        _count: {
+          select: { messages: true },
+        },
+      },
+    });
+  },
+
   async getCurrentForMode(userId: string, mode: Mode, currentId: string | null) {
     if (currentId) {
       const conversation = await prisma.conversation.findUnique({

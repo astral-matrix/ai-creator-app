@@ -6,6 +6,7 @@ import { MessageList } from "./message-list";
 import { ChatInput } from "./chat-input";
 import { useChat } from "@/lib/hooks/useChat";
 import { useConversation } from "@/lib/hooks/useConversation";
+import { useConversations } from "@/lib/hooks/useConversations";
 import { useWorkspace } from "@/lib/hooks/useWorkspace";
 import { useAppStore } from "@/lib/store";
 import { Mode } from "@/lib/types";
@@ -147,9 +148,14 @@ export function ChatPane({ mode }: ChatPaneProps) {
   } = useChat(mode, { onStreamComplete: handleStreamComplete });
 
   const { createNewChat, isCreatingChat } = useConversation(mode);
+  const { conversations: allConversations, isLoading: isLoadingConversations, selectConversation } = useConversations(mode);
 
   const handleNewChat = () => {
     createNewChat({ provider, model });
+  };
+
+  const handleSelectChat = (conversationId: string) => {
+    selectConversation({ conversationId, targetMode: mode });
   };
 
   const handleProviderChange = (newProvider: typeof provider) => {
@@ -227,9 +233,13 @@ export function ChatPane({ mode }: ChatPaneProps) {
       <ChatHeader
         mode={mode}
         title={conversation?.title}
+        conversationId={conversation?.id}
         provider={provider}
         model={model}
+        conversations={allConversations}
+        isLoadingConversations={isLoadingConversations}
         onNewChat={handleNewChat}
+        onSelectChat={handleSelectChat}
         onProviderChange={handleProviderChange}
         onModelChange={handleModelChange}
         isCreating={isCreatingChat}

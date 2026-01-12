@@ -90,3 +90,35 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// PUT /api/bootstrap - Update user preferences
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { anonUserId, preferences } = body as {
+      anonUserId: string;
+      preferences: Record<string, unknown>;
+    };
+
+    if (!anonUserId) {
+      return NextResponse.json(
+        { error: 'Missing anonUserId' },
+        { status: 400 }
+      );
+    }
+
+    // Find user
+    const user = await userRepo.findOrCreate(anonUserId);
+
+    // Update preferences
+    await userRepo.updatePreferences(user.id, preferences as any);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Update preferences error:', error);
+    return NextResponse.json(
+      { error: 'Failed to update preferences' },
+      { status: 500 }
+    );
+  }
+}

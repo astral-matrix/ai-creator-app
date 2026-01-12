@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Plus, Settings } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,15 +11,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Mode, Provider, MODELS } from "@/lib/types";
+import { ChatSelector } from "./chat-selector";
+import { Mode, Provider, MODELS, ConversationSummary } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface ChatHeaderProps {
   mode: Mode;
   title?: string | null;
+  conversationId?: string | null;
   provider: Provider;
   model: string;
+  conversations: ConversationSummary[];
+  isLoadingConversations?: boolean;
   onNewChat: () => void;
+  onSelectChat: (conversationId: string) => void;
   onProviderChange: (provider: Provider) => void;
   onModelChange: (model: string) => void;
   isCreating?: boolean;
@@ -28,9 +33,13 @@ interface ChatHeaderProps {
 export function ChatHeader({
   mode,
   title,
+  conversationId,
   provider,
   model,
+  conversations,
+  isLoadingConversations,
   onNewChat,
+  onSelectChat,
   onProviderChange,
   onModelChange,
   isCreating,
@@ -58,9 +67,15 @@ export function ChatHeader({
             New Chat
           </Button>
           <div className="h-4 w-px bg-border" />
-          <h2 className="text-sm font-medium truncate max-w-[200px]">
-            {title || "New conversation"}
-          </h2>
+          <ChatSelector
+            currentTitle={title}
+            currentId={conversationId}
+            conversations={conversations}
+            isLoading={isLoadingConversations}
+            isCreating={isCreating}
+            onNewChat={onNewChat}
+            onSelectChat={onSelectChat}
+          />
         </div>
 
         <div className="flex items-center gap-3">

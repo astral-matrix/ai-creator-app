@@ -61,12 +61,20 @@ export const useAppStore = create<AppState>()(
         BUILD: null,
       },
       setConversation: (mode, conversation) =>
-        set((state) => ({
-          conversations: {
-            ...state.conversations,
-            [mode]: conversation,
-          },
-        })),
+        set((state) => {
+          // Clear workspace when switching to a different conversation
+          const currentConv = state.conversations[mode];
+          const workspaceChanged = currentConv?.workspaceId !== conversation?.workspaceId;
+          
+          return {
+            conversations: {
+              ...state.conversations,
+              [mode]: conversation,
+            },
+            // Clear workspace if switching to a conversation with a different workspace
+            ...(workspaceChanged ? { currentWorkspace: null } : {}),
+          };
+        }),
 
       // Streaming
       isStreaming: false,
