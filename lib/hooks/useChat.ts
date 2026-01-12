@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { nanoid } from 'nanoid';
 import { useAppStore } from '../store';
-import { Mode, MessageData } from '../types';
+import { Mode, MessageData, ConversationWithMessages } from '../types';
 
 interface UseChatOptions {
   onStreamComplete?: (content: string) => void;
@@ -13,6 +13,7 @@ interface UseChatOptions {
 export function useChat(mode: Mode, options?: UseChatOptions) {
   const queryClient = useQueryClient();
   const abortControllerRef = useRef<AbortController | null>(null);
+  const [isSending, setIsSending] = useState(false);
 
   const {
     userId,
@@ -34,23 +35,27 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
   const model = selectedModel[mode];
   const draft = drafts[mode];
 
-  // Helper to get fresh conversation state (avoids stale closures)
-  const getConversation = () => useAppStore.getState().conversations[mode];
-
   const sendMessage = useCallback(
     async (content: string) => {
-      if (!userId || !conversation?.id || isStreaming || !content.trim()) {
+      if (!userId || isStreaming || isSending || !content.trim()) {
         return;
       }
 
       const clientMessageId = nanoid();
+      const trimmedContent = content.trim();
 
-      // Optimistically add user message
+      // Clear draft immediately
+      setDraft(mode, '');
+
+      // Set sending state (shows "Sending..." for new conversations)
+      setIsSending(true);
+
+      // Create optimistic user message
       const userMessage: MessageData = {
         id: clientMessageId,
-        conversationId: conversation.id,
+        conversationId: conversation?.id || 'pending',
         role: 'user',
-        content: content.trim(),
+        content: trimmedContent,
         status: 'complete',
         clientMessageId,
         tokenIn: null,
@@ -59,24 +64,13 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
         createdAt: new Date().toISOString(),
       };
 
-      // If this is the first message, set title immediately (optimistic update)
-      const isFirstMessage = !conversation.messages || conversation.messages.length === 0;
-      const newTitle = isFirstMessage 
-        ? content.trim().slice(0, 30) + (content.trim().length > 30 ? '...' : '')
-        : conversation.title;
-
-      setConversation(mode, {
-        ...conversation,
-        title: newTitle,
-        messages: [...(conversation.messages || []), userMessage],
-      });
-
-      // Clear draft
-      setDraft(mode, '');
-
-      // Start streaming
-      setIsStreaming(true);
-      setStreamingContent('');
+      // If we have a conversation, add message optimistically
+      if (conversation) {
+        setConversation(mode, {
+          ...conversation,
+          messages: [...(conversation.messages || []), userMessage],
+        });
+      }
 
       abortControllerRef.current = new AbortController();
 
@@ -86,13 +80,13 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             anonUserId: userId,
-            conversationId: conversation.id,
+            conversationId: conversation?.id || null, // null triggers new conversation creation
             mode,
             provider,
             model,
             message: {
               clientMessageId,
-              content: content.trim(),
+              content: trimmedContent,
             },
           }),
           signal: abortControllerRef.current.signal,
@@ -101,6 +95,11 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
         if (!response.ok) {
           throw new Error('Failed to send message');
         }
+
+        // Start streaming state
+        setIsSending(false);
+        setIsStreaming(true);
+        setStreamingContent('');
 
         const reader = response.body?.getReader();
         if (!reader) {
@@ -111,6 +110,9 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
         let buffer = '';
         let assistantMessageId = '';
         let fullContent = '';
+        let newConversationId: string | null = null;
+        let newTitle: string | null = null;
+        let newWorkspaceId: string | null = null;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -121,14 +123,33 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (line.startsWith('event: ')) {
-              const eventType = line.slice(7);
-              continue;
-            }
-
             if (line.startsWith('data: ')) {
               try {
                 const data = JSON.parse(line.slice(6));
+
+                // Handle meta event (contains conversation info for new conversations)
+                if (data.conversationId && !newConversationId) {
+                  newConversationId = data.conversationId;
+                  newTitle = data.title;
+                  newWorkspaceId = data.workspaceId;
+                  
+                  // If this is a new conversation, create it in the store
+                  if (data.isNewConversation) {
+                    const newConv: ConversationWithMessages = {
+                      id: newConversationId,
+                      userId,
+                      mode,
+                      title: newTitle,
+                      provider,
+                      model,
+                      workspaceId: newWorkspaceId,
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString(),
+                      messages: [{ ...userMessage, conversationId: newConversationId }],
+                    };
+                    setConversation(mode, newConv);
+                  }
+                }
 
                 if (data.messageId && !assistantMessageId) {
                   assistantMessageId = data.messageId;
@@ -138,10 +159,6 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
                   fullContent += data.text;
                   appendStreamingContent(data.text);
                 }
-
-                if (data.tokenIn !== undefined) {
-                  // Stream complete
-                }
               } catch {
                 // Skip malformed JSON
               }
@@ -149,12 +166,14 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
           }
         }
 
-        // Add assistant message to conversation (use fresh state)
-        if (assistantMessageId && fullContent) {
-          const currentConv = getConversation();
+        // Get fresh conversation state
+        const currentConv = useAppStore.getState().conversations[mode];
+
+        // Add assistant message to conversation
+        if (assistantMessageId && fullContent && currentConv) {
           const assistantMessage: MessageData = {
             id: assistantMessageId,
-            conversationId: conversation.id,
+            conversationId: currentConv.id,
             role: 'assistant',
             content: fullContent,
             status: 'complete',
@@ -167,7 +186,7 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
 
           setConversation(mode, {
             ...currentConv,
-            messages: [...(currentConv?.messages || []), assistantMessage],
+            messages: [...(currentConv.messages || []), assistantMessage],
           });
 
           // Call onStreamComplete callback if provided
@@ -177,44 +196,42 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
         }
       } catch (error) {
         if ((error as Error).name === 'AbortError') {
-          // User cancelled
           return;
         }
 
         console.error('Chat error:', error);
 
-        // Add error message (use fresh state)
-        const currentConv = getConversation();
-        const errorMessage: MessageData = {
-          id: nanoid(),
-          conversationId: conversation.id,
-          role: 'assistant',
-          content: 'Sorry, an error occurred. Please try again.',
-          status: 'failed',
-          clientMessageId: null,
-          tokenIn: null,
-          tokenOut: null,
-          metadata: null,
-          createdAt: new Date().toISOString(),
-        };
+        // Get fresh conversation state for error handling
+        const currentConv = useAppStore.getState().conversations[mode];
 
-        setConversation(mode, {
-          ...currentConv,
-          messages: [...(currentConv?.messages || []), errorMessage],
-        });
+        if (currentConv) {
+          const errorMessage: MessageData = {
+            id: nanoid(),
+            conversationId: currentConv.id,
+            role: 'assistant',
+            content: 'Sorry, an error occurred. Please try again.',
+            status: 'failed',
+            clientMessageId: null,
+            tokenIn: null,
+            tokenOut: null,
+            metadata: null,
+            createdAt: new Date().toISOString(),
+          };
+
+          setConversation(mode, {
+            ...currentConv,
+            messages: [...(currentConv.messages || []), errorMessage],
+          });
+        }
       } finally {
+        setIsSending(false);
         setIsStreaming(false);
         setStreamingContent('');
         abortControllerRef.current = null;
 
-        // Refetch to sync with server
-        queryClient.invalidateQueries({
-          queryKey: ['conversation', mode, conversation.id],
-        });
-        // Also refresh conversations list (for updated title/message count)
-        queryClient.invalidateQueries({
-          queryKey: ['conversations'],
-        });
+        // Refresh data from server
+        queryClient.invalidateQueries({ queryKey: ['conversation', mode] });
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
       }
     },
     [
@@ -224,18 +241,21 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
       provider,
       model,
       isStreaming,
+      isSending,
       setConversation,
       setDraft,
       setIsStreaming,
       setStreamingContent,
       appendStreamingContent,
       queryClient,
+      options,
     ]
   );
 
   const cancelStream = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
+      setIsSending(false);
       setIsStreaming(false);
       setStreamingContent('');
     }
@@ -244,6 +264,7 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
   return {
     messages: conversation?.messages || [],
     isStreaming,
+    isSending, // New: true while waiting for server to create conversation
     streamingContent,
     draft,
     setDraft: (content: string) => setDraft(mode, content),
@@ -251,5 +272,7 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
     cancelStream,
     provider,
     model,
+    conversationId: conversation?.id,
+    title: conversation?.title,
   };
 }

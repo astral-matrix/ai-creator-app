@@ -27,7 +27,6 @@ interface ChatHeaderProps {
   onSelectChat: (conversationId: string) => void;
   onProviderChange: (provider: Provider) => void;
   onModelChange: (model: string) => void;
-  isCreating?: boolean;
 }
 
 export function ChatHeader({
@@ -42,7 +41,6 @@ export function ChatHeader({
   onSelectChat,
   onProviderChange,
   onModelChange,
-  isCreating,
 }: ChatHeaderProps) {
   const availableModels = Object.entries(MODELS).flatMap(([p, models]) =>
     models.map((m) => ({ ...m, provider: p as Provider }))
@@ -60,7 +58,6 @@ export function ChatHeader({
             variant="outline"
             size="sm"
             onClick={onNewChat}
-            disabled={isCreating}
             className="gap-2"
           >
             <Plus className="h-4 w-4" />

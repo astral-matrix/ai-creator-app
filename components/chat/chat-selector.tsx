@@ -29,18 +29,13 @@ export function ChatSelector({
 }: ChatSelectorProps) {
   const [open, setOpen] = useState(false);
 
-  // Show title if we have one, otherwise "Chat History" (for dropdown) or "New conversation" (for display)
-  const hasRealTitle = currentTitle && currentTitle.trim().length > 0;
-  const displayTitle = hasRealTitle ? currentTitle : "Chat History";
-  
-  // Don't render dropdown if there's no history - just show the title
+  // Only render if there are conversations to show
   if (!isLoading && conversations.length === 0) {
-    return (
-      <span className="h-8 px-3 flex items-center text-sm font-medium text-muted-foreground truncate max-w-[200px]">
-        {hasRealTitle ? currentTitle : "New conversation"}
-      </span>
-    );
+    return null;
   }
+
+  // Display current title or "Chat History" if browsing history without a current chat
+  const displayTitle = currentTitle || "Chat History";
   const truncatedTitle =
     displayTitle.length > 25
       ? displayTitle.substring(0, 25) + "..."
@@ -58,14 +53,12 @@ export function ChatSelector({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[280px]">
-        {/* Loading state */}
         {isLoading && (
           <div className="flex items-center justify-center py-4">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           </div>
         )}
 
-        {/* Conversation list */}
         {!isLoading &&
           conversations.map((conv) => (
             <DropdownMenuItem

@@ -138,6 +138,7 @@ export function ChatPane({ mode }: ChatPaneProps) {
   const {
     messages,
     isStreaming,
+    isSending,
     streamingContent,
     draft,
     setDraft,
@@ -145,13 +146,14 @@ export function ChatPane({ mode }: ChatPaneProps) {
     cancelStream,
     provider,
     model,
+    title,
   } = useChat(mode, { onStreamComplete: handleStreamComplete });
 
-  const { createNewChat, isCreatingChat } = useConversation(mode);
+  const { startNewChat } = useConversation(mode);
   const { conversations: allConversations, isLoading: isLoadingConversations, selectConversation } = useConversations(mode);
 
   const handleNewChat = () => {
-    createNewChat({ provider, model });
+    startNewChat();
   };
 
   const handleSelectChat = (conversationId: string) => {
@@ -232,7 +234,7 @@ export function ChatPane({ mode }: ChatPaneProps) {
     <div className="flex flex-col h-full bg-background overflow-hidden">
       <ChatHeader
         mode={mode}
-        title={conversation?.title}
+        title={isSending ? "Sending..." : title}
         conversationId={conversation?.id}
         provider={provider}
         model={model}
@@ -242,13 +244,12 @@ export function ChatPane({ mode }: ChatPaneProps) {
         onSelectChat={handleSelectChat}
         onProviderChange={handleProviderChange}
         onModelChange={handleModelChange}
-        isCreating={isCreatingChat}
       />
 
       <MessageList
         messages={messages}
         streamingContent={streamingContent}
-        isStreaming={isStreaming}
+        isStreaming={isStreaming || isSending}
         mode={mode}
         onApplyDiff={mode === "BUILD" ? handleApplyDiff : undefined}
         onRunCommand={mode === "BUILD" ? handleRunCommand : undefined}
