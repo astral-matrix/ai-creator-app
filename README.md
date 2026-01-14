@@ -83,6 +83,7 @@ Groq offers **free API access** with generous rate limits - no credit card requi
    ```
 
 Groq provides access to powerful open-source models with extremely fast inference:
+
 - **Llama 3.3 70B** - Best quality, great for complex tasks
 - **Llama 3.1 8B** - Fastest, good for simple tasks
 - **Mixtral 8x7B** - Good balance of speed and quality
@@ -109,14 +110,55 @@ npm run sandbox:build
 
 ### 7. Start the Application
 
-You need two terminal windows:
+All scripts automatically start PostgreSQL and build the sandbox image if needed.
 
-**Terminal 1 - Runner Service:**
+**Option A: Interactive TUI with clickable tabs (recommended)**
+
+```bash
+./scripts/dev.sh
+```
+
+Uses `mprocs` to show a terminal UI with clickable process tabs. Click on a process name or use arrow keys to switch between Runner and Next.js logs. Keybindings: `q` quit, `r` restart, `x` stop.
+
+**Option B: Separate windows with tmux**
+
+```bash
+./scripts/dev-tmux.sh
+```
+
+Uses `tmux` to run each service in its own window. Switch between full-screen views of each process. Keybindings:
+
+- `Ctrl+b` then `0` - Switch to Runner
+- `Ctrl+b` then `1` - Switch to Next.js
+- `Ctrl+b` then `d` - Detach (services keep running in background)
+- `tmux attach -t ai-creator-dev` - Reattach to session
+
+> **Note:** `Ctrl+C` only stops the current window's process. To kill everything, use `Ctrl+b` then type `:kill-session` and press Enter. That's by design - tmux is built for persistent sessions.
+
+**Option C: Interleaved output in single terminal**
+
+```bash
+./scripts/dev-concurrent.sh
+```
+
+Uses `concurrently` to run both services with color-coded, labeled output in one terminal:
+
+```
+[runner] 🚀 Runner service listening on port 4050
+[nextjs] ▲ Next.js 15.x.x
+[nextjs] - Local: http://localhost:3000
+```
+
+**Option D: Manual startup (two terminals)**
+
+Terminal 1 - Runner Service:
+
 ```bash
 npm run runner
 ```
 
-**Terminal 2 - Next.js App:**
+Terminal 2 - Next.js App:
+
 ```bash
 npm run dev
 ```
@@ -128,18 +170,21 @@ Navigate to **http://localhost:3000** in your browser.
 ## Modes
 
 ### CHAT Mode
+
 - General conversation and Q&A
 - Brainstorming and ideation
 - No code execution capabilities
 - Default model: Llama 3.3 70B (Groq)
 
 ### DESIGN Mode
+
 - System design and architecture planning
 - Technical specifications and tradeoff analysis
 - No code execution
 - Default model: Llama 3.3 70B (Groq)
 
 ### BUILD Mode
+
 - Active code generation
 - File changes via unified diffs
 - Command execution in sandboxed containers
@@ -150,44 +195,44 @@ Navigate to **http://localhost:3000** in your browser.
 
 ### Free (Groq) ⭐
 
-| Provider | Model ID        | Description                    |
-|----------|-----------------|--------------------------------|
-| Groq     | llama-3.3-70b   | Best quality, fast inference   |
-| Groq     | llama-3.1-8b    | Fastest, good for simple tasks |
-| Groq     | mixtral-8x7b    | Balanced speed and quality     |
+| Provider | Model ID      | Description                    |
+| -------- | ------------- | ------------------------------ |
+| Groq     | llama-3.3-70b | Best quality, fast inference   |
+| Groq     | llama-3.1-8b  | Fastest, good for simple tasks |
+| Groq     | mixtral-8x7b  | Balanced speed and quality     |
 
 ### Paid (Optional)
 
-| Provider   | Model ID           | Description          |
-|------------|-------------------|----------------------|
-| OpenAI     | gpt-5.2           | Latest GPT model     |
-| OpenAI     | gpt-5.2-thinking  | Enhanced reasoning   |
-| Anthropic  | opus-4.5-high     | Most capable Claude  |
-| xAI        | grok-latest       | xAI Grok model       |
+| Provider  | Model ID         | Description         |
+| --------- | ---------------- | ------------------- |
+| OpenAI    | gpt-5.2          | Latest GPT model    |
+| OpenAI    | gpt-5.2-thinking | Enhanced reasoning  |
+| Anthropic | opus-4.5-high    | Most capable Claude |
+| xAI       | grok-latest      | xAI Grok model      |
 
 ## NPM Scripts Reference
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start Next.js development server |
-| `npm run build` | Build for production |
-| `npm run start` | Start production server |
-| `npm run lint` | Run ESLint |
-| `npm run runner` | Start sandbox runner service |
-| `npm run db:generate` | Generate Prisma client |
-| `npm run db:push` | Push schema to database |
-| `npm run db:migrate` | Run database migrations |
-| `npm run db:studio` | Open Prisma Studio (database GUI) |
-| `npm run docker:up` | Start Docker services |
-| `npm run docker:down` | Stop Docker services |
-| `npm run sandbox:build` | Build sandbox Docker image |
+| Command                 | Description                       |
+| ----------------------- | --------------------------------- |
+| `npm run dev`           | Start Next.js development server  |
+| `npm run build`         | Build for production              |
+| `npm run start`         | Start production server           |
+| `npm run lint`          | Run ESLint                        |
+| `npm run runner`        | Start sandbox runner service      |
+| `npm run db:generate`   | Generate Prisma client            |
+| `npm run db:push`       | Push schema to database           |
+| `npm run db:migrate`    | Run database migrations           |
+| `npm run db:studio`     | Open Prisma Studio (database GUI) |
+| `npm run docker:up`     | Start Docker services             |
+| `npm run docker:down`   | Stop Docker services              |
+| `npm run sandbox:build` | Build sandbox Docker image        |
 
 ## Ports Used
 
-| Port | Service |
-|------|---------|
+| Port | Service             |
+| ---- | ------------------- |
 | 3000 | Next.js application |
-| 4050 | Runner service |
+| 4050 | Runner service      |
 | 5432 | PostgreSQL database |
 
 ## Project Structure
@@ -237,19 +282,22 @@ When you ask the AI to build a web app, it needs to start the server as a **daem
 ### API Usage
 
 **Start a daemon (e.g., web server):**
+
 ```typescript
 // From the useWorkspace hook
-const { startDaemon, stopDaemon, getDaemonLogs, daemons } = useWorkspace(workspaceId);
+const { startDaemon, stopDaemon, getDaemonLogs, daemons } =
+  useWorkspace(workspaceId);
 
 // Start a Node.js server as a background process
 await startDaemon({
-  daemonId: 'web-server',      // Unique identifier for this daemon
-  command: 'node server.js',   // The command to run
-  workingDir: '/workspace'     // Optional working directory
+  daemonId: "web-server", // Unique identifier for this daemon
+  command: "node server.js", // The command to run
+  workingDir: "/workspace", // Optional working directory
 });
 ```
 
 **Check daemon status:**
+
 ```typescript
 // List all running daemons
 console.log(daemons);
@@ -257,26 +305,28 @@ console.log(daemons);
 ```
 
 **Get daemon logs:**
+
 ```typescript
 // Get the last 100 lines of logs
-const logs = await getDaemonLogs('web-server', 100);
+const logs = await getDaemonLogs("web-server", 100);
 console.log(logs);
 ```
 
 **Stop a daemon:**
+
 ```typescript
-await stopDaemon('web-server');
+await stopDaemon("web-server");
 ```
 
 ### REST API Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/workspaces/{id}/daemon/start` | POST | Start a daemon process |
-| `/api/workspaces/{id}/daemon/{daemonId}/stop` | POST | Stop a daemon |
-| `/api/workspaces/{id}/daemon/{daemonId}/logs` | GET | Get daemon logs |
-| `/api/workspaces/{id}/daemon/{daemonId}` | GET | Get daemon status |
-| `/api/workspaces/{id}/daemons` | GET | List all daemons |
+| Endpoint                                      | Method | Description            |
+| --------------------------------------------- | ------ | ---------------------- |
+| `/api/workspaces/{id}/daemon/start`           | POST   | Start a daemon process |
+| `/api/workspaces/{id}/daemon/{daemonId}/stop` | POST   | Stop a daemon          |
+| `/api/workspaces/{id}/daemon/{daemonId}/logs` | GET    | Get daemon logs        |
+| `/api/workspaces/{id}/daemon/{daemonId}`      | GET    | Get daemon status      |
+| `/api/workspaces/{id}/daemons`                | GET    | List all daemons       |
 
 ### Example: Starting an Express Server
 
@@ -285,15 +335,15 @@ await stopDaemon('web-server');
 // Command: "node server.js"
 
 // server.js
-const express = require('express');
+const express = require("express");
 const app = express();
 
-app.get('/', (req, res) => {
-  res.send('Hello from the sandbox!');
+app.get("/", (req, res) => {
+  res.send("Hello from the sandbox!");
 });
 
 app.listen(3000, () => {
-  console.log('Server running on port 3000');
+  console.log("Server running on port 3000");
 });
 ```
 
@@ -325,14 +375,15 @@ localhost:3000/api/preview/{workspaceId}/  →  127.0.0.1:{exposedPort}/
 
 ### Preview URL Format
 
-| URL Type | Format | Example |
-|----------|--------|---------|
-| Proxy URL (use this) | `/api/preview/{workspaceId}/` | `http://localhost:3000/api/preview/abc123/` |
-| Direct URL (internal) | `http://127.0.0.1:{exposedPort}/` | `http://127.0.0.1:10000/` |
+| URL Type              | Format                            | Example                                     |
+| --------------------- | --------------------------------- | ------------------------------------------- |
+| Proxy URL (use this)  | `/api/preview/{workspaceId}/`     | `http://localhost:3000/api/preview/abc123/` |
+| Direct URL (internal) | `http://127.0.0.1:{exposedPort}/` | `http://127.0.0.1:10000/`                   |
 
 ### URL Bar Features
 
 The preview pane includes a URL bar that:
+
 - Shows the current preview URL
 - Allows you to navigate to different paths (e.g., `/api/preview/{id}/about`)
 - Has a **Go** button (→) to navigate
@@ -341,6 +392,7 @@ The preview pane includes a URL bar that:
 ### Debug Info
 
 If the preview shows a "Connection Error", the error page displays:
+
 - **Target URL**: The internal URL being proxied to
 - **Workspace ID**: The workspace identifier
 - **Exposed Port**: The host port mapped to container port 3000
@@ -348,11 +400,11 @@ If the preview shows a "Connection Error", the error page displays:
 
 ### Common Issues
 
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| 404 Error | No server running in container | Start your app as a daemon process |
-| Connection Error | App not listening on port 3000 | Ensure your app binds to port 3000 |
-| Wrong content | URL pointing to wrong location | Check the URL bar shows `/api/preview/{id}/` |
+| Issue            | Cause                          | Solution                                     |
+| ---------------- | ------------------------------ | -------------------------------------------- |
+| 404 Error        | No server running in container | Start your app as a daemon process           |
+| Connection Error | App not listening on port 3000 | Ensure your app binds to port 3000           |
+| Wrong content    | URL pointing to wrong location | Check the URL bar shows `/api/preview/{id}/` |
 
 ## Security
 
@@ -365,23 +417,29 @@ If the preview shows a "Connection Error", the error page displays:
 ## Troubleshooting
 
 ### "Environment variable not found: DATABASE_URL"
+
 Create a `.env` file in the project root with the `DATABASE_URL` variable.
 
 ### "Cannot connect to PostgreSQL"
+
 1. Ensure Docker is running
 2. Run `docker-compose up -d postgres`
 3. Wait a few seconds and try again
 
 ### "Sandbox image not found"
+
 Run `npm run sandbox:build` to build the sandbox Docker image.
 
 ### "Runner service not responding"
+
 Make sure the runner service is running with `npm run runner`.
 
 ### "API key errors"
+
 Verify your API keys in `.env` are correct. For Groq, the key should start with `gsk_`.
 
 ### "Groq rate limit exceeded"
+
 Groq's free tier has rate limits. Wait a moment and try again, or consider upgrading to a paid plan.
 
 ## License
