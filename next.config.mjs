@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   serverExternalPackages: ['@prisma/client'],
+  // Disable the Next.js development indicator (the "N" logo in bottom left)
+  devIndicators: false,
   async rewrites() {
     return [
       {
