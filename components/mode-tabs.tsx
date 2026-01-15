@@ -1,16 +1,18 @@
 "use client";
 
 import React from "react";
-import { MessageSquare, Palette, Wrench } from "lucide-react";
+import { MessageSquare, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Mode } from "@/lib/types";
+import { UIMode } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
 
 interface ModeTabsProps {
-  activeMode: Mode;
-  onModeChange: (mode: Mode) => void;
+  activeMode: UIMode;
+  onModeChange: (mode: UIMode) => void;
+  isDesignMode?: boolean;
 }
 
-const modes: { id: Mode; label: string; icon: React.ElementType; description: string }[] = [
+const modes: { id: UIMode; label: string; icon: React.ElementType; description: string }[] = [
   {
     id: "CHAT",
     label: "Chat",
@@ -18,42 +20,48 @@ const modes: { id: Mode; label: string; icon: React.ElementType; description: st
     description: "General conversation",
   },
   {
-    id: "DESIGN",
-    label: "Design",
-    icon: Palette,
-    description: "Plan & architect",
-  },
-  {
     id: "BUILD",
     label: "Build",
     icon: Wrench,
-    description: "Code & execute",
+    description: "Design & code",
   },
 ];
 
-export function ModeTabs({ activeMode, onModeChange }: ModeTabsProps) {
+export function ModeTabs({ activeMode, onModeChange, isDesignMode }: ModeTabsProps) {
   return (
-    <div className="flex items-center bg-muted rounded-xl p-1 gap-1">
-      {modes.map((mode) => {
-        const Icon = mode.icon;
-        const isActive = activeMode === mode.id;
+    <div className="flex items-center gap-3">
+      {/* Design Mode Badge - appears when in Design sub-mode */}
+      {isDesignMode && activeMode === "BUILD" && (
+        <Badge 
+          variant="secondary" 
+          className="bg-purple-500/20 text-purple-400 border-purple-500/30 px-3 py-1"
+        >
+          Design Mode
+        </Badge>
+      )}
 
-        return (
-          <button
-            key={mode.id}
-            onClick={() => onModeChange(mode.id)}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-              isActive
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-            )}
-          >
-            <Icon className="w-4 h-4" />
-            <span>{mode.label}</span>
-          </button>
-        );
-      })}
+      <div className="flex items-center bg-muted rounded-xl p-1 gap-1">
+        {modes.map((mode) => {
+          const Icon = mode.icon;
+          const isActive = activeMode === mode.id;
+
+          return (
+            <button
+              key={mode.id}
+              onClick={() => onModeChange(mode.id)}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                isActive
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+              )}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{mode.label}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

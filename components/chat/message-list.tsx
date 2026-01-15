@@ -3,15 +3,16 @@
 import React, { useEffect, useRef } from "react";
 import { User, Bot, AlertCircle, Loader2, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MessageData, Mode } from "@/lib/types";
+import { MessageData, UIMode } from "@/lib/types";
 import { MessageRenderer } from "./message-renderer";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAppStore } from "@/lib/store";
 
 interface MessageListProps {
   messages: MessageData[];
   streamingContent?: string;
   isStreaming?: boolean;
-  mode: Mode;
+  mode: UIMode;
   onApplyDiff?: (patch: string) => void;
   onRunCommand?: (command: string) => void;
   isApplying?: boolean;
@@ -32,11 +33,23 @@ export function MessageList({
 }: MessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { isDesignMode } = useAppStore();
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamingContent]);
+
+  // Determine the display mode for empty state message
+  const getEmptyStateMessage = () => {
+    if (mode === "CHAT") {
+      return "Ask me anything! I can help with questions, brainstorming, and general assistance.";
+    }
+    if (mode === "BUILD" && isDesignMode) {
+      return "Let's design something together. I can help with architecture, planning, and specifications.";
+    }
+    return "Ready to build! I can generate code, create files, and help you execute commands.";
+  };
 
   if (messages.length === 0 && !isStreaming) {
     return (
@@ -47,12 +60,7 @@ export function MessageList({
           </div>
           <h3 className="text-lg font-semibold mb-2">Start a conversation</h3>
           <p className="text-muted-foreground text-sm">
-            {mode === "CHAT" &&
-              "Ask me anything! I can help with questions, brainstorming, and general assistance."}
-            {mode === "DESIGN" &&
-              "Let's design something together. I can help with architecture, planning, and specifications."}
-            {mode === "BUILD" &&
-              "Ready to build! I can generate code, create files, and help you execute commands."}
+            {getEmptyStateMessage()}
           </p>
         </div>
       </div>
@@ -128,7 +136,7 @@ export function MessageList({
 
 interface MessageItemProps {
   message: MessageData;
-  mode: Mode;
+  mode: UIMode;
   onApplyDiff?: (patch: string) => void;
   onRunCommand?: (command: string) => void;
   isApplying?: boolean;

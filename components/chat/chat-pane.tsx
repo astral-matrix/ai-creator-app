@@ -1,23 +1,25 @@
 "use client";
 
 import React, { useCallback, useState } from "react";
+import { Wrench } from "lucide-react";
 import { ChatHeader } from "./chat-header";
 import { MessageList } from "./message-list";
 import { ChatInput } from "./chat-input";
+import { Button } from "@/components/ui/button";
 import { useChat } from "@/lib/hooks/useChat";
 import { useConversation } from "@/lib/hooks/useConversation";
 import { useConversations } from "@/lib/hooks/useConversations";
 import { useWorkspace } from "@/lib/hooks/useWorkspace";
 import { useAppStore } from "@/lib/store";
-import { Mode } from "@/lib/types";
+import { UIMode } from "@/lib/types";
 import { extractAllDiffPatches, extractAllCommands } from "@/lib/rendering/block-parser";
 
 interface ChatPaneProps {
-  mode: Mode;
+  mode: UIMode;
 }
 
 // Separate component for BUILD mode workspace functionality
-function useBuildModeWorkspace(mode: Mode, conversationWorkspaceId?: string | null) {
+function useBuildModeWorkspace(mode: UIMode, conversationWorkspaceId?: string | null) {
   const [autoApplyStatus, setAutoApplyStatus] = useState<string | null>(null);
   
   // Only fetch workspace data for BUILD mode
@@ -157,7 +159,13 @@ function useBuildModeWorkspace(mode: Mode, conversationWorkspaceId?: string | nu
 }
 
 export function ChatPane({ mode }: ChatPaneProps) {
-  const { setSelectedProvider, setSelectedModel, conversations } = useAppStore();
+  const { 
+    setSelectedProvider, 
+    setSelectedModel, 
+    conversations,
+    isDesignMode,
+    setIsDesignMode,
+  } = useAppStore();
   const conversation = conversations[mode];
 
   // Use BUILD mode workspace features conditionally
@@ -201,6 +209,10 @@ export function ChatPane({ mode }: ChatPaneProps) {
 
   const handleNewChat = () => {
     startNewChat();
+    // Reset design mode when starting new chat
+    if (mode === "BUILD") {
+      setIsDesignMode(false);
+    }
   };
 
   const handleSelectChat = (conversationId: string) => {
@@ -213,6 +225,15 @@ export function ChatPane({ mode }: ChatPaneProps) {
 
   const handleModelChange = (newModel: string) => {
     setSelectedModel(mode, newModel);
+  };
+
+  const handleDesignModeToggle = () => {
+    setIsDesignMode(!isDesignMode);
+  };
+
+  const handleBuildClick = () => {
+    // Switch from Design Mode to Build Mode
+    setIsDesignMode(false);
   };
 
   const handleSend = async () => {
@@ -271,6 +292,9 @@ export function ChatPane({ mode }: ChatPaneProps) {
     [workspace, execCommand, conversation?.id]
   );
 
+  // Determine if BUILD button should show (in Design Mode within BUILD pane)
+  const showBuildButton = mode === "BUILD" && isDesignMode;
+
   return (
     <div className="flex flex-col h-full bg-background overflow-hidden">
       <ChatHeader
@@ -281,10 +305,12 @@ export function ChatPane({ mode }: ChatPaneProps) {
         model={model}
         conversations={allConversations}
         isLoadingConversations={isLoadingConversations}
+        isDesignMode={mode === "BUILD" ? isDesignMode : undefined}
         onNewChat={handleNewChat}
         onSelectChat={handleSelectChat}
         onProviderChange={handleProviderChange}
         onModelChange={handleModelChange}
+        onDesignModeToggle={mode === "BUILD" ? handleDesignModeToggle : undefined}
       />
 
       <MessageList
@@ -292,12 +318,25 @@ export function ChatPane({ mode }: ChatPaneProps) {
         streamingContent={streamingContent}
         isStreaming={isStreaming || isSending}
         mode={mode}
-        onApplyDiff={mode === "BUILD" ? handleApplyDiff : undefined}
-        onRunCommand={mode === "BUILD" ? handleRunCommand : undefined}
+        onApplyDiff={mode === "BUILD" && !isDesignMode ? handleApplyDiff : undefined}
+        onRunCommand={mode === "BUILD" && !isDesignMode ? handleRunCommand : undefined}
         isApplying={isApplying}
         isExecuting={isExecuting}
         autoApplyStatus={autoApplyStatus}
       />
+
+      {/* BUILD button - appears at bottom when in Design Mode */}
+      {showBuildButton && (
+        <div className="flex justify-center py-3 border-t border-border bg-card/30">
+          <Button
+            onClick={handleBuildClick}
+            className="gap-2 bg-green-600 hover:bg-green-700 text-white"
+          >
+            <Wrench className="h-4 w-4" />
+            BUILD
+          </Button>
+        </div>
+      )}
 
       <ChatInput
         value={draft}
@@ -308,7 +347,7 @@ export function ChatPane({ mode }: ChatPaneProps) {
         placeholder={
           mode === "CHAT"
             ? "Ask me anything..."
-            : mode === "DESIGN"
+            : isDesignMode
             ? "Describe what you want to design..."
             : "Tell me what to build..."
         }

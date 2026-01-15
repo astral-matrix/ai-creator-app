@@ -3,10 +3,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useAppStore } from '../store';
-import { Mode, ConversationWithMessages } from '../types';
+import { UIMode, ConversationWithMessages } from '../types';
 
-export function useConversation(mode: Mode) {
-  const { userId, conversations, setConversation } = useAppStore();
+export function useConversation(mode: UIMode) {
+  const { userId, conversations, setConversation, setIsDesignMode } = useAppStore();
   const queryClient = useQueryClient();
 
   const conversation = conversations[mode];
@@ -46,6 +46,10 @@ export function useConversation(mode: Mode) {
   // "New Chat" just clears the current conversation - actual creation happens on first message
   const startNewChat = () => {
     setConversation(mode, null);
+    // Reset design mode when starting new chat in BUILD mode
+    if (mode === 'BUILD') {
+      setIsDesignMode(false);
+    }
     queryClient.invalidateQueries({ queryKey: ['conversation', mode] });
   };
 

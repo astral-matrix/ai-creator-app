@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Plus } from "lucide-react";
+import { Plus, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -12,21 +12,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ChatSelector } from "./chat-selector";
-import { Mode, Provider, MODELS, ConversationSummary } from "@/lib/types";
+import { UIMode, Provider, MODELS, ConversationSummary } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface ChatHeaderProps {
-  mode: Mode;
+  mode: UIMode;
   title?: string | null;
   conversationId?: string | null;
   provider: Provider;
   model: string;
   conversations: ConversationSummary[];
   isLoadingConversations?: boolean;
+  isDesignMode?: boolean;
   onNewChat: () => void;
   onSelectChat: (conversationId: string) => void;
   onProviderChange: (provider: Provider) => void;
   onModelChange: (model: string) => void;
+  onDesignModeToggle?: () => void;
 }
 
 export function ChatHeader({
@@ -37,10 +39,12 @@ export function ChatHeader({
   model,
   conversations,
   isLoadingConversations,
+  isDesignMode,
   onNewChat,
   onSelectChat,
   onProviderChange,
   onModelChange,
+  onDesignModeToggle,
 }: ChatHeaderProps) {
   const availableModels = Object.entries(MODELS).flatMap(([p, models]) =>
     models.map((m) => ({ ...m, provider: p as Provider }))
@@ -74,6 +78,22 @@ export function ChatHeader({
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Design button - only shown in BUILD mode */}
+          {mode === "BUILD" && onDesignModeToggle && (
+            <Button
+              variant={isDesignMode ? "secondary" : "outline"}
+              size="sm"
+              onClick={onDesignModeToggle}
+              className={cn(
+                "gap-2",
+                isDesignMode && "bg-purple-500/20 text-purple-400 border-purple-500/30 hover:bg-purple-500/30"
+              )}
+            >
+              <Palette className="h-4 w-4" />
+              Design
+            </Button>
+          )}
+
           <div className="flex items-center gap-2">
             <Select
               value={`${provider}:${model}`}
@@ -111,7 +131,7 @@ export function ChatHeader({
             </Select>
           </div>
 
-          <ModeBadge mode={mode} />
+          <ModeBadge mode={mode} isDesignMode={isDesignMode} />
         </div>
       </div>
     </div>
@@ -132,15 +152,20 @@ function ProviderIcon({ provider }: { provider: Provider }) {
   );
 }
 
-function ModeBadge({ mode }: { mode: Mode }) {
-  const variants: Record<Mode, { label: string; className: string }> = {
+function ModeBadge({ mode, isDesignMode }: { mode: UIMode; isDesignMode?: boolean }) {
+  // If in BUILD mode but Design sub-mode is active, show Design badge
+  if (mode === "BUILD" && isDesignMode) {
+    return (
+      <Badge variant="outline" className="text-xs bg-purple-500/20 text-purple-400 border-purple-500/30">
+        Design Mode
+      </Badge>
+    );
+  }
+
+  const variants: Record<UIMode, { label: string; className: string }> = {
     CHAT: {
       label: "Chat Mode",
       className: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-    },
-    DESIGN: {
-      label: "Design Mode",
-      className: "bg-purple-500/20 text-purple-400 border-purple-500/30",
     },
     BUILD: {
       label: "Build Mode",

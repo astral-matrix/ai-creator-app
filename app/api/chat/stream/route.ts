@@ -76,8 +76,9 @@ export async function POST(request: NextRequest) {
         title,
       });
 
-      // For BUILD mode, also create a workspace
-      if (mode === 'BUILD') {
+      // For BUILD or DESIGN mode, also create a workspace
+      // (DESIGN is now a sub-mode of BUILD in the UI, so it shares workspaces)
+      if (mode === 'BUILD' || mode === 'DESIGN') {
         const workspaceUuid = uuidv4();
         const hostPath = path.join(WORKSPACE_HOST_PATH, workspaceUuid);
         fs.mkdirSync(hostPath, { recursive: true });
@@ -93,7 +94,10 @@ export async function POST(request: NextRequest) {
       }
 
       // Update user preferences to set this as current conversation
-      const prefKey = `currentConversationId${mode.charAt(0) + mode.slice(1).toLowerCase()}`;
+      // For DESIGN mode, use BUILD preference key since DESIGN is under BUILD tab
+      const prefKey = mode === 'DESIGN' 
+        ? 'currentConversationIdBuild' 
+        : `currentConversationId${mode.charAt(0) + mode.slice(1).toLowerCase()}`;
       await userRepo.updatePreferences(user.id, {
         [prefKey]: conversation.id,
       } as any);
@@ -139,7 +143,9 @@ export async function POST(request: NextRequest) {
     ];
 
     // Assemble system messages
-    const systemMessages = assembleSystemMessages(mode);
+    // isDesignMode is true when mode === 'DESIGN' (sent from client when Design sub-mode is active)
+    const isDesignMode = mode === 'DESIGN';
+    const systemMessages = assembleSystemMessages(mode, isDesignMode);
 
     // Create readable stream
     const stream = new ReadableStream({

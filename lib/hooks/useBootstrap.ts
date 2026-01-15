@@ -6,7 +6,14 @@ import { useAppStore } from '../store';
 import { BootstrapResponse } from '../types';
 
 export function useBootstrap() {
-  const { userId, setUserId, setConversation, setSelectedProvider, setSelectedModel } = useAppStore();
+  const { 
+    userId, 
+    setUserId, 
+    setConversation, 
+    setSelectedProvider, 
+    setSelectedModel,
+    setIsDesignMode,
+  } = useAppStore();
 
   const query = useQuery({
     queryKey: ['bootstrap', userId],
@@ -33,26 +40,30 @@ export function useBootstrap() {
       // Store user ID
       setUserId(newUserId);
 
-      // Set provider/model defaults from preferences
+      // Set provider/model defaults from preferences (only CHAT and BUILD now)
       setSelectedProvider('CHAT', preferences.defaultProviderChat);
       setSelectedModel('CHAT', preferences.defaultModelChat);
-      setSelectedProvider('DESIGN', preferences.defaultProviderDesign);
-      setSelectedModel('DESIGN', preferences.defaultModelDesign);
-      setSelectedProvider('BUILD', preferences.defaultProviderBuild);
-      setSelectedModel('BUILD', preferences.defaultModelBuild);
+      // Use BUILD preferences (DESIGN is now a sub-mode of BUILD)
+      setSelectedProvider('BUILD', preferences.defaultProviderBuild || preferences.defaultProviderDesign);
+      setSelectedModel('BUILD', preferences.defaultModelBuild || preferences.defaultModelDesign);
 
       // Set initial conversations (without messages, will load on tab switch)
       if (conversations.chat) {
         setConversation('CHAT', { ...conversations.chat, messages: [] } as any);
       }
-      if (conversations.design) {
-        setConversation('DESIGN', { ...conversations.design, messages: [] } as any);
-      }
+      
+      // For BUILD tab: prefer BUILD conversation, fallback to DESIGN if no BUILD exists
+      // This merges DESIGN conversations into the BUILD tab
       if (conversations.build) {
         setConversation('BUILD', { ...conversations.build, messages: [] } as any);
+        setIsDesignMode(false);
+      } else if (conversations.design) {
+        // If user has a DESIGN conversation but no BUILD, use DESIGN under BUILD tab
+        setConversation('BUILD', { ...conversations.design, messages: [] } as any);
+        setIsDesignMode(true); // Set design mode since this was a DESIGN conversation
       }
     }
-  }, [query.data, setUserId, setConversation, setSelectedProvider, setSelectedModel]);
+  }, [query.data, setUserId, setConversation, setSelectedProvider, setSelectedModel, setIsDesignMode]);
 
   return query;
 }

@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Mode, Provider, ConversationWithMessages } from './types';
+import { UIMode, Provider, ConversationWithMessages } from './types';
 
-// Streaming state per mode
+// Streaming state per UI mode
 interface StreamingState {
   isStreaming: boolean;
   content: string;
@@ -13,25 +13,29 @@ interface AppState {
   userId: string | null;
   setUserId: (id: string) => void;
 
-  // Mode
-  activeMode: Mode;
-  setActiveMode: (mode: Mode) => void;
+  // Mode - now uses UIMode (CHAT or BUILD only)
+  activeMode: UIMode;
+  setActiveMode: (mode: UIMode) => void;
 
-  // Conversations per mode
-  conversations: Record<Mode, ConversationWithMessages | null>;
-  setConversation: (mode: Mode, conversation: ConversationWithMessages | null) => void;
+  // Design Mode sub-state (within BUILD pane)
+  isDesignMode: boolean;
+  setIsDesignMode: (isDesign: boolean) => void;
 
-  // Streaming state (per mode)
-  streaming: Record<Mode, StreamingState>;
-  setIsStreaming: (mode: Mode, streaming: boolean) => void;
-  setStreamingContent: (mode: Mode, content: string) => void;
-  appendStreamingContent: (mode: Mode, text: string) => void;
+  // Conversations per UI mode (DESIGN conversations appear under BUILD)
+  conversations: Record<UIMode, ConversationWithMessages | null>;
+  setConversation: (mode: UIMode, conversation: ConversationWithMessages | null) => void;
 
-  // Provider/model selection (per mode)
-  selectedProvider: Record<Mode, Provider>;
-  selectedModel: Record<Mode, string>;
-  setSelectedProvider: (mode: Mode, provider: Provider) => void;
-  setSelectedModel: (mode: Mode, model: string) => void;
+  // Streaming state (per UI mode)
+  streaming: Record<UIMode, StreamingState>;
+  setIsStreaming: (mode: UIMode, streaming: boolean) => void;
+  setStreamingContent: (mode: UIMode, content: string) => void;
+  appendStreamingContent: (mode: UIMode, text: string) => void;
+
+  // Provider/model selection (per UI mode)
+  selectedProvider: Record<UIMode, Provider>;
+  selectedModel: Record<UIMode, string>;
+  setSelectedProvider: (mode: UIMode, provider: Provider) => void;
+  setSelectedModel: (mode: UIMode, model: string) => void;
 
   // UI state
   previewPanelOpen: boolean;
@@ -39,14 +43,13 @@ interface AppState {
   logsPanelOpen: boolean;
   setLogsPanelOpen: (open: boolean) => void;
 
-  // Drafts per mode
-  drafts: Record<Mode, string>;
-  setDraft: (mode: Mode, content: string) => void;
+  // Drafts per UI mode
+  drafts: Record<UIMode, string>;
+  setDraft: (mode: UIMode, content: string) => void;
 }
 
-const initialStreamingState: Record<Mode, StreamingState> = {
+const initialStreamingState: Record<UIMode, StreamingState> = {
   CHAT: { isStreaming: false, content: '' },
-  DESIGN: { isStreaming: false, content: '' },
   BUILD: { isStreaming: false, content: '' },
 };
 
@@ -57,14 +60,17 @@ export const useAppStore = create<AppState>()(
       userId: null,
       setUserId: (id) => set({ userId: id }),
 
-      // Mode
+      // Mode - defaults to CHAT
       activeMode: 'CHAT',
       setActiveMode: (mode) => set({ activeMode: mode }),
 
-      // Conversations
+      // Design Mode sub-state
+      isDesignMode: false,
+      setIsDesignMode: (isDesign) => set({ isDesignMode: isDesign }),
+
+      // Conversations (2 UI modes: CHAT and BUILD)
       conversations: {
         CHAT: null,
-        DESIGN: null,
         BUILD: null,
       },
       setConversation: (mode, conversation) =>
@@ -75,7 +81,7 @@ export const useAppStore = create<AppState>()(
           },
         })),
 
-      // Streaming (per mode)
+      // Streaming (per UI mode)
       streaming: initialStreamingState,
       setIsStreaming: (mode, isStreaming) =>
         set((state) => ({
@@ -111,12 +117,10 @@ export const useAppStore = create<AppState>()(
       // Provider/model - defaults to Gemini (free)
       selectedProvider: {
         CHAT: 'gemini',
-        DESIGN: 'gemini',
         BUILD: 'gemini',
       },
       selectedModel: {
         CHAT: 'gemini-2.0-flash',
-        DESIGN: 'gemini-2.0-flash',
         BUILD: 'gemini-2.0-flash',
       },
       setSelectedProvider: (mode, provider) =>
@@ -143,7 +147,6 @@ export const useAppStore = create<AppState>()(
       // Drafts
       drafts: {
         CHAT: '',
-        DESIGN: '',
         BUILD: '',
       },
       setDraft: (mode, content) =>
@@ -159,6 +162,7 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         userId: state.userId,
         activeMode: state.activeMode,
+        isDesignMode: state.isDesignMode,
         selectedProvider: state.selectedProvider,
         selectedModel: state.selectedModel,
         previewPanelOpen: state.previewPanelOpen,

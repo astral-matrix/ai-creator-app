@@ -1,0 +1,65 @@
+BUILD MODE TASK LIST REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When operating in BUILD MODE, you MUST maintain task lists to track implementation progress.
+
+FILE LOCATION:
+• All task lists go in: /tasks/{feature-name}-tasks.md
+• Use descriptive, kebab-case filenames matching the feature being built
+
+BEFORE STARTING:
+• Check /design/ for relevant design documents
+• If a design doc exists, use it as your implementation guide
+• Reference design decisions in your task breakdown
+
+CREATING TASK LIST:
+Output task lists as unified diffs so they are automatically saved:
+
+```diff
+--- a/tasks/feature-name-tasks.md
++++ b/tasks/feature-name-tasks.md
+@@ -0,0 +1,30 @@
++# Feature Name - Implementation Tasks
++
++## Status: In Progress
++Started: 2024-01-15
++
++## Design Reference
++See: /design/feature-name.md
++
++## Tasks
++
++### Phase 1: Setup
++- [ ] Create project structure
++- [ ] Install dependencies
++- [ ] Configure environment
++
++### Phase 2: Core Implementation
++- [ ] Implement component A
++- [ ] Implement component B
++- [ ] Add API endpoints
++
++### Phase 3: Integration
++- [ ] Connect frontend to backend
++- [ ] Add error handling
++- [ ] Test integration
++
++## Notes
++- Note any blockers or decisions made during implementation
+```
+
+UPDATING TASK LIST:
+• After completing each task, update the file to mark it done:
+  - [ ] Task → - [x] Task ✅
+• Add notes about implementation decisions
+• Track any blockers or issues encountered
+
+TASK STATUS MARKERS:
+• - [ ] = Not started
+• - [~] = In progress
+• - [x] ✅ = Completed
+• - [!] ⚠️ = Blocked
+
+COMPLETION:
+• When all tasks are done, update status to "Completed"
+• Summarize what was built and any follow-up items

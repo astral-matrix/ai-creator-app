@@ -1,6 +1,17 @@
 // Enums matching Prisma schema
+// Mode includes DESIGN for backend compatibility, but UI only shows CHAT and BUILD tabs
+// DESIGN mode operates as a sub-mode within the BUILD pane
 export type Mode = 'CHAT' | 'DESIGN' | 'BUILD';
+
+// UI-facing mode type - only two tabs visible to user
+export type UIMode = 'CHAT' | 'BUILD';
+
 export type Provider = 'openai' | 'anthropic' | 'xai' | 'groq' | 'gemini';
+
+// Helper to map backend Mode to UI tab
+export function modeToUIMode(mode: Mode): UIMode {
+  return mode === 'DESIGN' ? 'BUILD' : mode;
+}
 export type MessageRole = 'user' | 'assistant' | 'system';
 export type MessageStatus = 'streaming' | 'complete' | 'failed';
 export type WorkspaceStatus = 'stopped' | 'running' | 'error';
@@ -43,9 +54,9 @@ export const MODELS: Record<Provider, ModelInfo[]> = {
   ],
 };
 
-export const MODE_DEFAULTS: Record<Mode, { provider: Provider; model: string }> = {
+// Defaults per UI mode (DESIGN uses BUILD defaults)
+export const MODE_DEFAULTS: Record<UIMode, { provider: Provider; model: string }> = {
   CHAT: { provider: 'gemini', model: 'gemini-2.0-flash' },
-  DESIGN: { provider: 'gemini', model: 'gemini-2.0-flash' },
   BUILD: { provider: 'gemini', model: 'gemini-2.0-flash' },
 };
 

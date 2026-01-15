@@ -18,11 +18,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { parseMessageContent } from "@/lib/rendering/block-parser";
-import { ParsedBlock, Mode } from "@/lib/types";
+import { ParsedBlock, UIMode } from "@/lib/types";
 
 interface MessageRendererProps {
   content: string;
-  mode: Mode;
+  mode: UIMode;
   onApplyDiff?: (patch: string) => void;
   onRunCommand?: (command: string) => void;
   isApplying?: boolean;
@@ -58,7 +58,7 @@ export function MessageRenderer({
 
 interface BlockRendererProps {
   block: ParsedBlock;
-  mode: Mode;
+  mode: UIMode;
   onApplyDiff?: (patch: string) => void;
   onRunCommand?: (command: string) => void;
   isApplying?: boolean;
@@ -217,7 +217,7 @@ function DiffBlock({
   filename?: string;
   additions: number;
   deletions: number;
-  mode: Mode;
+  mode: UIMode;
   onApply?: (patch: string) => void;
   isApplying?: boolean;
 }) {
@@ -309,7 +309,7 @@ function CommandBlock({
 }: {
   content: string;
   isAutoRan?: boolean;
-  mode: Mode;
+  mode: UIMode;
   onRun?: (command: string) => void;
   isExecuting?: boolean;
 }) {

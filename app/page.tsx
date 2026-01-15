@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 import { Loader2, Sparkles } from "lucide-react";
 import { ModeTabs } from "@/components/mode-tabs";
 import { ChatPane } from "@/components/chat/chat-pane";
@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 
 export default function Home() {
   const { isLoading, error } = useBootstrap();
-  const { activeMode, setActiveMode, conversations, previewPanelOpen } = useAppStore();
+  const { activeMode, setActiveMode, conversations, previewPanelOpen, isDesignMode } = useAppStore();
 
   const currentConversation = conversations[activeMode];
 
@@ -76,7 +76,12 @@ export default function Home() {
             </div>
           </div>
 
-          <ModeTabs activeMode={activeMode} onModeChange={setActiveMode} />
+          {/* Mode tabs with Design Mode badge */}
+          <ModeTabs 
+            activeMode={activeMode} 
+            onModeChange={setActiveMode}
+            isDesignMode={activeMode === "BUILD" ? isDesignMode : false}
+          />
 
           <div className="w-[140px]" /> {/* Spacer for balance */}
         </div>
@@ -94,7 +99,7 @@ export default function Home() {
           <ChatPane mode={activeMode} />
         </div>
 
-        {/* Preview pane (only in BUILD mode) */}
+        {/* Preview pane (only in BUILD mode, regardless of Design sub-mode) */}
         {activeMode === "BUILD" && previewPanelOpen && (
           <div className="w-[45%] flex-shrink-0">
             <PreviewPane

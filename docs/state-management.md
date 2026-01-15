@@ -10,30 +10,54 @@ The application uses a hybrid state management approach:
 2. **React Query** - For server state (conversations, workspaces, daemons)
 3. **Local React State** - For ephemeral UI state within components
 
+## UI Mode Architecture
+
+The application has **two UI tabs** but **three backend modes**:
+
+| UI Tab | Backend Modes | Description |
+|--------|--------------|-------------|
+| **CHAT** | CHAT | General conversation and Q&A |
+| **BUILD** | BUILD, DESIGN | Code generation and design planning |
+
+The BUILD tab contains both BUILD and DESIGN as sub-modes:
+- **BUILD Mode**: Active code generation, file manipulation, command execution
+- **Design Mode**: Planning, architecture, design documentation (outputs to `/design/*.md`)
+
+The `isDesignMode` flag in the store tracks which sub-mode is active within the BUILD tab.
+
 ## Architecture Diagram
 
 ```mermaid
 flowchart TD
+    subgraph UITabs [UI Tabs]
+        ChatTab[CHAT Tab]
+        BuildTab[BUILD Tab]
+    end
+
+    subgraph BuildSubModes [BUILD Tab Sub-Modes]
+        DesignMode[Design Mode]
+        BuildMode[Build Mode]
+    end
+
+    BuildTab --> BuildSubModes
+
     subgraph GlobalState [Global State - Zustand]
         UserId[userId]
-        ActiveMode[activeMode]
+        ActiveMode[activeMode: UIMode]
+        IsDesignMode[isDesignMode: boolean]
     end
 
     subgraph PerModeState [Per-Mode State - Zustand]
         ChatConv[conversations.CHAT]
-        DesignConv[conversations.DESIGN]
         BuildConv[conversations.BUILD]
         
         ChatStream[streaming.CHAT]
-        DesignStream[streaming.DESIGN]
         BuildStream[streaming.BUILD]
         
         ChatDraft[drafts.CHAT]
-        DesignDraft[drafts.DESIGN]
         BuildDraft[drafts.BUILD]
         
         ChatProvider[selectedProvider.CHAT]
-        DesignProvider[selectedProvider.DESIGN]
         BuildProvider[selectedProvider.BUILD]
     end
 
@@ -48,6 +72,7 @@ flowchart TD
         ChatPane[ChatPane]
         PreviewPane[PreviewPane]
         ChatHeader[ChatHeader]
+        ModeTabs[ModeTabs]
     end
 
     GlobalState --> UIComponents
@@ -62,28 +87,54 @@ flowchart TD
 | State | Type | Description |
 |-------|------|-------------|
 | `userId` | `string \| null` | Anonymous user identifier |
-| `activeMode` | `Mode` | Currently active tab (CHAT, DESIGN, BUILD) |
+| `activeMode` | `UIMode` | Currently active tab (CHAT or BUILD) |
+| `isDesignMode` | `boolean` | Whether Design sub-mode is active (BUILD tab only) |
 | `previewPanelOpen` | `boolean` | Whether preview panel is visible |
 | `logsPanelOpen` | `boolean` | Whether logs panel is expanded |
 
-### Per-Mode State (Isolated Per Mode)
+### Per-Mode State (Isolated Per UI Mode)
 
 | State | Type | Description |
 |-------|------|-------------|
-| `conversations[mode]` | `ConversationWithMessages \| null` | Current conversation for each mode |
-| `streaming[mode]` | `{ isStreaming: boolean; content: string }` | Streaming state per mode |
-| `drafts[mode]` | `string` | Unsent message draft per mode |
-| `selectedProvider[mode]` | `Provider` | Selected AI provider per mode |
-| `selectedModel[mode]` | `string` | Selected AI model per mode |
+| `conversations[mode]` | `ConversationWithMessages \| null` | Current conversation for each UI mode |
+| `streaming[mode]` | `{ isStreaming: boolean; content: string }` | Streaming state per UI mode |
+| `drafts[mode]` | `string` | Unsent message draft per UI mode |
+| `selectedProvider[mode]` | `Provider` | Selected AI provider per UI mode |
+| `selectedModel[mode]` | `string` | Selected AI model per UI mode |
 
 ### Server State (React Query)
 
 | Query | Scope | Description |
 |-------|-------|-------------|
 | `['conversation', mode]` | Per-mode | Fetches current conversation for mode |
-| `['conversations', mode]` | Per-mode | Lists all conversations for mode |
+| `['conversations', mode]` | Per-mode | Lists all conversations for mode (BUILD includes DESIGN) |
 | `['workspace', workspaceId]` | BUILD only | Fetches workspace data |
 | `['daemons', workspaceId]` | BUILD only | Lists running daemon processes |
+
+## Type System
+
+### UIMode vs Mode
+
+```typescript
+// Backend mode - includes DESIGN for database compatibility
+export type Mode = 'CHAT' | 'DESIGN' | 'BUILD';
+
+// UI-facing mode - only two tabs visible
+export type UIMode = 'CHAT' | 'BUILD';
+
+// Helper to map backend mode to UI tab
+export function modeToUIMode(mode: Mode): UIMode {
+  return mode === 'DESIGN' ? 'BUILD' : mode;
+}
+```
+
+### Design Mode State
+
+```typescript
+// In Zustand store
+isDesignMode: boolean;  // True when Design sub-mode is active in BUILD tab
+setIsDesignMode: (isDesign: boolean) => void;
+```
 
 ## Data Flow
 
@@ -105,6 +156,25 @@ sequenceDiagram
     useConversation-->>ChatPane: Return mode-specific data
 ```
 
+### Design Mode Toggle Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant ChatHeader
+    participant Store
+    participant ChatPane
+    participant API
+
+    User->>ChatHeader: Click Design button
+    ChatHeader->>Store: setIsDesignMode(true)
+    Store-->>ChatPane: Re-render with Design Mode UI
+    Note over ChatPane: Purple badge appears, placeholder changes
+    User->>ChatPane: Send design request
+    ChatPane->>API: POST /api/chat/stream (mode: 'DESIGN')
+    API-->>ChatPane: Design response with /design/*.md diff
+```
+
 ### Message Sending Flow (New Conversation)
 
 ```mermaid
@@ -117,14 +187,15 @@ sequenceDiagram
 
     User->>ChatPane: Type message & send
     ChatPane->>useChat: sendMessage(content)
-    useChat->>Store: setIsStreaming(mode, true)
+    useChat->>useChat: getBackendMode() → 'DESIGN' or 'BUILD'
+    useChat->>Store: setIsStreaming(uiMode, true)
     useChat->>StreamAPI: POST /api/chat/stream
     StreamAPI-->>useChat: meta event (conversationId, title)
-    useChat->>Store: setConversation(mode, newConv)
+    useChat->>Store: setConversation(uiMode, newConv)
     StreamAPI-->>useChat: text events
-    useChat->>Store: appendStreamingContent(mode, text)
+    useChat->>Store: appendStreamingContent(uiMode, text)
     StreamAPI-->>useChat: done
-    useChat->>Store: setIsStreaming(mode, false)
+    useChat->>Store: setIsStreaming(uiMode, false)
 ```
 
 ### BUILD Mode Workspace Flow
@@ -143,47 +214,73 @@ sequenceDiagram
         useWorkspace->>ReactQuery: query(['workspace', id])
         ReactQuery-->>useWorkspace: workspace data
         useWorkspace-->>useBuildModeWorkspace: workspace, mutations
-    else Other modes
+    else CHAT mode
         useBuildModeWorkspace-->>ChatPane: null workspace, no-op functions
     end
 ```
 
 ## Mode Isolation
 
-The key architectural decision is **mode isolation**. Each mode operates independently:
+The key architectural decision is **mode isolation**. Each UI mode operates independently:
 
 ### Streaming Isolation
 
-Previously, streaming state was global:
+Streaming state is per-UI-mode:
 ```typescript
-// ❌ Old - Global streaming (caused cross-mode leaks)
-isStreaming: boolean;
-streamingContent: string;
-```
+// ✅ Per-mode streaming
+streaming: Record<UIMode, { isStreaming: boolean; content: string }>;
 
-Now, streaming state is per-mode:
-```typescript
-// ✅ New - Per-mode streaming
-streaming: Record<Mode, { isStreaming: boolean; content: string }>;
+// Access in component
+const { streaming } = useAppStore();
+const { isStreaming, content } = streaming[mode];
 ```
 
 ### Workspace Isolation
 
-Workspaces are only relevant to BUILD mode:
+Workspaces are only relevant to BUILD mode (including Design sub-mode):
 
 ```typescript
 // In ChatPane
-function useBuildModeWorkspace(mode: Mode, workspaceId?: string | null) {
+function useBuildModeWorkspace(mode: UIMode, workspaceId?: string | null) {
   // Only fetch workspace data for BUILD mode
   const workspaceHook = useWorkspace(mode === "BUILD" ? workspaceId : null);
   
-  // Return null/no-op for non-BUILD modes
+  // Return null/no-op for CHAT mode
   return {
     workspace: mode === "BUILD" ? workspace : null,
     // ... other properties
   };
 }
 ```
+
+### Design Mode within BUILD
+
+Design mode shares the same conversation and workspace as BUILD mode:
+
+```typescript
+// In useChat - determine backend mode from UI state
+const getBackendMode = useCallback((): Mode => {
+  if (uiMode === 'BUILD' && isDesignMode) {
+    return 'DESIGN';  // Send DESIGN to backend
+  }
+  return uiMode;  // CHAT or BUILD
+}, [uiMode, isDesignMode]);
+```
+
+## Project Documentation Structure
+
+The AI agent manages documentation in the workspace:
+
+```
+/workspace
+├── /design          # Design documents from Design Mode
+│   └── {feature}.md
+└── /tasks           # Build task lists from Build Mode
+    └── {feature}-tasks.md
+```
+
+- **Design Mode**: Creates/updates `/design/{feature}.md` with architecture, requirements, decisions
+- **Build Mode**: Creates/updates `/tasks/{feature}-tasks.md` with implementation TODOs
 
 ## Persistence Strategy
 
@@ -192,7 +289,8 @@ The following state is persisted to `localStorage` via Zustand's `persist` middl
 | State | Persisted | Reason |
 |-------|-----------|--------|
 | `userId` | ✅ | Maintain user identity across sessions |
-| `activeMode` | ✅ | Remember last used mode |
+| `activeMode` | ✅ | Remember last used tab |
+| `isDesignMode` | ✅ | Remember Design sub-mode state |
 | `selectedProvider` | ✅ | Remember AI preferences |
 | `selectedModel` | ✅ | Remember AI preferences |
 | `previewPanelOpen` | ✅ | Remember UI layout |
@@ -204,9 +302,9 @@ The following state is persisted to `localStorage` via Zustand's `persist` middl
 
 ### 1. Determine the Scope
 
-Ask: "Is this state specific to a mode, or shared across all modes?"
+Ask: "Is this state specific to a UI mode, or shared across all modes?"
 
-- **Per-mode**: Add to the `Record<Mode, T>` pattern
+- **Per-mode**: Add to the `Record<UIMode, T>` pattern
 - **Global**: Add as a simple property
 
 ### 2. Determine the Source
@@ -229,14 +327,13 @@ Ask: "Should this state survive a page refresh?"
 // 1. Add to store interface
 interface AppState {
   // ... existing state
-  newFeature: Record<Mode, NewFeatureState>;
-  setNewFeature: (mode: Mode, value: NewFeatureState) => void;
+  newFeature: Record<UIMode, NewFeatureState>;
+  setNewFeature: (mode: UIMode, value: NewFeatureState) => void;
 }
 
-// 2. Initialize with defaults for all modes
+// 2. Initialize with defaults for all UI modes
 newFeature: {
   CHAT: defaultValue,
-  DESIGN: defaultValue,
   BUILD: defaultValue,
 },
 
@@ -265,7 +362,13 @@ lib/
 │   ├── useConversation.ts # Single conversation management
 │   ├── useConversations.ts # Conversation list
 │   └── useWorkspace.ts   # Workspace management (BUILD only)
-└── types.ts              # Type definitions
+├── types.ts              # Type definitions (Mode, UIMode, etc.)
+├── prompts/
+│   ├── mode_switching_system_prompt.txt  # Core mode switching logic
+│   ├── design_mode_guidance.txt          # Design mode instructions
+│   └── build_mode_tasks_guidance.txt     # Build mode task tracking
+└── ai/
+    └── prompt-assembly.ts # Assembles system prompts per mode
 ```
 
 ## Testing Mode Isolation
@@ -274,8 +377,12 @@ To verify mode isolation is working:
 
 1. **Streaming Test**: Start a message in BUILD mode, switch to CHAT mode. The streaming indicator should not appear in CHAT mode.
 
-2. **Workspace Test**: The preview pane should only appear in BUILD mode. No workspace-related UI should appear in CHAT or DESIGN modes.
+2. **Workspace Test**: The preview pane should only appear in BUILD mode. No workspace-related UI should appear in CHAT mode.
 
 3. **Draft Test**: Type a message in CHAT mode, switch to BUILD mode. The draft should be preserved per-mode.
 
-4. **Conversation Test**: Each mode maintains its own conversation history independently.
+4. **Conversation Test**: Each UI mode maintains its own conversation history independently.
+
+5. **Design Mode Test**: Click the Design button in BUILD mode. The purple badge should appear, and the backend should receive `mode: 'DESIGN'` in requests.
+
+6. **Design to Build Transition**: In Design mode, when the agent asks "Ready to build?", clicking the BUILD button should switch to Build sub-mode and the purple badge should disappear.

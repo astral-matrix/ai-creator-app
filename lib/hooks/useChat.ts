@@ -4,13 +4,13 @@ import { useCallback, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { nanoid } from 'nanoid';
 import { useAppStore } from '../store';
-import { Mode, MessageData, ConversationWithMessages } from '../types';
+import { UIMode, Mode, MessageData, ConversationWithMessages } from '../types';
 
 interface UseChatOptions {
   onStreamComplete?: (content: string) => void;
 }
 
-export function useChat(mode: Mode, options?: UseChatOptions) {
+export function useChat(uiMode: UIMode, options?: UseChatOptions) {
   const queryClient = useQueryClient();
   const abortControllerRef = useRef<AbortController | null>(null);
   const [isSending, setIsSending] = useState(false);
@@ -27,16 +27,26 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
     selectedModel,
     drafts,
     setDraft,
+    isDesignMode,
   } = useAppStore();
 
-  const conversation = conversations[mode];
-  const provider = selectedProvider[mode];
-  const model = selectedModel[mode];
-  const draft = drafts[mode];
+  const conversation = conversations[uiMode];
+  const provider = selectedProvider[uiMode];
+  const model = selectedModel[uiMode];
+  const draft = drafts[uiMode];
   
   // Get streaming state for this specific mode
-  const isStreaming = streaming[mode].isStreaming;
-  const streamingContent = streaming[mode].content;
+  const isStreaming = streaming[uiMode].isStreaming;
+  const streamingContent = streaming[uiMode].content;
+
+  // Determine the actual backend mode to send to API
+  // If in BUILD UI mode and Design sub-mode is active, send DESIGN mode
+  const getBackendMode = useCallback((): Mode => {
+    if (uiMode === 'BUILD' && isDesignMode) {
+      return 'DESIGN';
+    }
+    return uiMode;
+  }, [uiMode, isDesignMode]);
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -46,9 +56,10 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
 
       const clientMessageId = nanoid();
       const trimmedContent = content.trim();
+      const backendMode = getBackendMode();
 
       // Clear draft immediately
-      setDraft(mode, '');
+      setDraft(uiMode, '');
 
       // Set sending state (shows "Sending..." for new conversations)
       setIsSending(true);
@@ -69,7 +80,7 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
 
       // If we have a conversation, add message optimistically
       if (conversation) {
-        setConversation(mode, {
+        setConversation(uiMode, {
           ...conversation,
           messages: [...(conversation.messages || []), userMessage],
         });
@@ -84,7 +95,7 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
           body: JSON.stringify({
             anonUserId: userId,
             conversationId: conversation?.id || null, // null triggers new conversation creation
-            mode,
+            mode: backendMode, // Send the actual backend mode (DESIGN or BUILD)
             provider,
             model,
             message: {
@@ -101,8 +112,8 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
 
         // Start streaming state (mode-specific)
         setIsSending(false);
-        setIsStreaming(mode, true);
-        setStreamingContent(mode, '');
+        setIsStreaming(uiMode, true);
+        setStreamingContent(uiMode, '');
 
         const reader = response.body?.getReader();
         if (!reader) {
@@ -141,7 +152,7 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
                     const newConv: ConversationWithMessages = {
                       id: newConversationId,
                       userId,
-                      mode,
+                      mode: backendMode, // Store the actual backend mode
                       title: newTitle,
                       provider,
                       model,
@@ -150,7 +161,7 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
                       updatedAt: new Date().toISOString(),
                       messages: [{ ...userMessage, conversationId: newConversationId }],
                     };
-                    setConversation(mode, newConv);
+                    setConversation(uiMode, newConv);
                   }
                 }
 
@@ -160,7 +171,7 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
 
                 if (data.text) {
                   fullContent += data.text;
-                  appendStreamingContent(mode, data.text);
+                  appendStreamingContent(uiMode, data.text);
                 }
               } catch {
                 // Skip malformed JSON
@@ -170,7 +181,7 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
         }
 
         // Get fresh conversation state
-        const currentConv = useAppStore.getState().conversations[mode];
+        const currentConv = useAppStore.getState().conversations[uiMode];
 
         // Add assistant message to conversation
         if (assistantMessageId && fullContent && currentConv) {
@@ -187,7 +198,7 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
             createdAt: new Date().toISOString(),
           };
 
-          setConversation(mode, {
+          setConversation(uiMode, {
             ...currentConv,
             messages: [...(currentConv.messages || []), assistantMessage],
           });
@@ -205,7 +216,7 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
         console.error('Chat error:', error);
 
         // Get fresh conversation state for error handling
-        const currentConv = useAppStore.getState().conversations[mode];
+        const currentConv = useAppStore.getState().conversations[uiMode];
 
         if (currentConv) {
           const errorMessage: MessageData = {
@@ -221,30 +232,32 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
             createdAt: new Date().toISOString(),
           };
 
-          setConversation(mode, {
+          setConversation(uiMode, {
             ...currentConv,
             messages: [...(currentConv.messages || []), errorMessage],
           });
         }
       } finally {
         setIsSending(false);
-        setIsStreaming(mode, false);
-        setStreamingContent(mode, '');
+        setIsStreaming(uiMode, false);
+        setStreamingContent(uiMode, '');
         abortControllerRef.current = null;
 
         // Refresh data from server
-        queryClient.invalidateQueries({ queryKey: ['conversation', mode] });
+        queryClient.invalidateQueries({ queryKey: ['conversation', uiMode] });
         queryClient.invalidateQueries({ queryKey: ['conversations'] });
       }
     },
     [
       userId,
       conversation,
-      mode,
+      uiMode,
       provider,
       model,
       isStreaming,
       isSending,
+      isDesignMode,
+      getBackendMode,
       setConversation,
       setDraft,
       setIsStreaming,
@@ -259,10 +272,10 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       setIsSending(false);
-      setIsStreaming(mode, false);
-      setStreamingContent(mode, '');
+      setIsStreaming(uiMode, false);
+      setStreamingContent(uiMode, '');
     }
-  }, [mode, setIsStreaming, setStreamingContent]);
+  }, [uiMode, setIsStreaming, setStreamingContent]);
 
   return {
     messages: conversation?.messages || [],
@@ -270,7 +283,7 @@ export function useChat(mode: Mode, options?: UseChatOptions) {
     isSending,
     streamingContent,
     draft,
-    setDraft: (content: string) => setDraft(mode, content),
+    setDraft: (content: string) => setDraft(uiMode, content),
     sendMessage,
     cancelStream,
     provider,

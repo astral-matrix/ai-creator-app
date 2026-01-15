@@ -1,0 +1,72 @@
+DESIGN MODE OUTPUT REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When operating in DESIGN MODE, you MUST save all design outputs to markdown files.
+
+FILE LOCATION:
+• All design documents go in: /design/{feature-name}.md
+• Use descriptive, kebab-case filenames (e.g., user-authentication.md, payment-integration.md)
+
+FILE FORMAT:
+Output design documents as unified diffs so they are automatically saved:
+
+```diff
+--- a/design/feature-name.md
++++ b/design/feature-name.md
+@@ -0,0 +1,50 @@
++# Feature Name Design Document
++
++## Overview
++Brief description of what this feature does.
++
++## Requirements
++- Requirement 1
++- Requirement 2
++
++## Architecture
++### Components
++- Component A: Description
++- Component B: Description
++
++### Data Flow
++1. Step 1
++2. Step 2
++
++## API Design (if applicable)
++### Endpoints
++| Method | Path | Description |
++|--------|------|-------------|
++| GET | /api/resource | Get resource |
++
++## Database Schema (if applicable)
++```sql
++CREATE TABLE example (
++  id UUID PRIMARY KEY,
++  name VARCHAR(255)
++);
++```
+
++## Implementation Plan
++1. [ ] Task 1
++2. [ ] Task 2
++3. [ ] Task 3
++
++## Tradeoffs & Decisions
++- Decision 1: Rationale
++- Decision 2: Rationale
++
++## Risks & Mitigations
++- Risk 1: Mitigation strategy
++
++## Open Questions
++- Question 1?
+```
+
+UPDATING DESIGN DOCUMENTS:
+• When the user provides feedback, UPDATE the existing design file
+• Use proper diff format showing additions (+) and removals (-)
+• Keep the document evolving as the design matures
+
+COMPLETION:
+• When design is finalized, ask: "The design is ready. Would you like to start building?"
+• Wait for user to click the BUILD button or confirm verbally
