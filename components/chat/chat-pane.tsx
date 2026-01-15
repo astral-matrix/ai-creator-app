@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useState } from "react";
-import { Wrench } from "lucide-react";
+import { Wrench, Palette } from "lucide-react";
 import { ChatHeader } from "./chat-header";
 import { MessageList } from "./message-list";
 import { ChatInput } from "./chat-input";
@@ -160,8 +160,6 @@ function useBuildModeWorkspace(mode: UIMode, conversationWorkspaceId?: string | 
 
 export function ChatPane({ mode }: ChatPaneProps) {
   const { 
-    setSelectedProvider, 
-    setSelectedModel, 
     conversations,
     isDesignMode,
     setIsDesignMode,
@@ -199,8 +197,6 @@ export function ChatPane({ mode }: ChatPaneProps) {
     setDraft,
     sendMessage,
     cancelStream,
-    provider,
-    model,
     title,
   } = useChat(mode, { onStreamComplete: mode === "BUILD" ? onStreamComplete : undefined });
 
@@ -217,14 +213,6 @@ export function ChatPane({ mode }: ChatPaneProps) {
 
   const handleSelectChat = (conversationId: string) => {
     selectConversation({ conversationId, targetMode: mode });
-  };
-
-  const handleProviderChange = (newProvider: typeof provider) => {
-    setSelectedProvider(mode, newProvider);
-  };
-
-  const handleModelChange = (newModel: string) => {
-    setSelectedModel(mode, newModel);
   };
 
   const handleDesignModeToggle = () => {
@@ -292,7 +280,8 @@ export function ChatPane({ mode }: ChatPaneProps) {
     [workspace, execCommand, conversation?.id]
   );
 
-  // Determine if BUILD button should show (in Design Mode within BUILD pane)
+  // Determine which mode buttons to show (only in BUILD tab)
+  const showDesignButton = mode === "BUILD" && !isDesignMode;
   const showBuildButton = mode === "BUILD" && isDesignMode;
 
   return (
@@ -301,16 +290,10 @@ export function ChatPane({ mode }: ChatPaneProps) {
         mode={mode}
         title={isSending ? "Sending..." : title}
         conversationId={conversation?.id}
-        provider={provider}
-        model={model}
         conversations={allConversations}
         isLoadingConversations={isLoadingConversations}
-        isDesignMode={mode === "BUILD" ? isDesignMode : undefined}
         onNewChat={handleNewChat}
         onSelectChat={handleSelectChat}
-        onProviderChange={handleProviderChange}
-        onModelChange={handleModelChange}
-        onDesignModeToggle={mode === "BUILD" ? handleDesignModeToggle : undefined}
       />
 
       <MessageList
@@ -325,16 +308,35 @@ export function ChatPane({ mode }: ChatPaneProps) {
         autoApplyStatus={autoApplyStatus}
       />
 
-      {/* BUILD button - appears at bottom when in Design Mode */}
-      {showBuildButton && (
-        <div className="flex justify-center py-3 border-t border-border bg-card/30">
-          <Button
-            onClick={handleBuildClick}
-            className="gap-2 bg-green-600 hover:bg-green-700 text-white"
-          >
-            <Wrench className="h-4 w-4" />
-            BUILD
-          </Button>
+      {/* Mode buttons - appear at bottom of chat pane, only in BUILD tab */}
+      {(showDesignButton || showBuildButton) && (
+        <div className="flex justify-between items-center px-4 py-3 border-t border-border bg-card/30">
+          {/* Design button - left side, shown when NOT in Design Mode */}
+          {showDesignButton ? (
+            <Button
+              onClick={handleDesignModeToggle}
+              variant="outline"
+              className="gap-2 border-purple-500/50 text-purple-400 hover:bg-purple-500/20 hover:text-purple-300"
+            >
+              <Palette className="h-4 w-4" />
+              Design
+            </Button>
+          ) : (
+            <div /> // Spacer
+          )}
+
+          {/* BUILD button - right side, shown when IN Design Mode */}
+          {showBuildButton ? (
+            <Button
+              onClick={handleBuildClick}
+              className="gap-2 bg-green-600 hover:bg-green-700 text-white"
+            >
+              <Wrench className="h-4 w-4" />
+              BUILD
+            </Button>
+          ) : (
+            <div /> // Spacer
+          )}
         </div>
       )}
 
