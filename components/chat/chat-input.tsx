@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect, KeyboardEvent } from "react";
+import React, { useRef, useEffect, KeyboardEvent, ReactNode } from "react";
 import { Send, Square, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +14,8 @@ interface ChatInputProps {
   isStreaming?: boolean;
   disabled?: boolean;
   placeholder?: string;
+  leftAction?: ReactNode;
+  rightAction?: ReactNode;
 }
 
 export function ChatInput({
@@ -24,6 +26,8 @@ export function ChatInput({
   isStreaming,
   disabled,
   placeholder = "Type a message...",
+  leftAction,
+  rightAction,
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -52,7 +56,15 @@ export function ChatInput({
   };
 
   return (
-    <div className="border-t border-border bg-card/50 p-4">
+    <div className="bg-card/50 p-4">
+      {/* Action buttons row - above text input */}
+      {(leftAction || rightAction) && (
+        <div className="flex justify-between items-center mb-2 max-w-4xl mx-auto">
+          <div>{leftAction}</div>
+          <div>{rightAction}</div>
+        </div>
+      )}
+      
       <div className="flex items-end gap-3 max-w-4xl mx-auto">
         <div className="flex-1 relative">
           <Textarea

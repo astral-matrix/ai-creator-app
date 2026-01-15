@@ -284,6 +284,31 @@ export function ChatPane({ mode }: ChatPaneProps) {
   const showDesignButton = mode === "BUILD" && !isDesignMode;
   const showBuildButton = mode === "BUILD" && isDesignMode;
 
+  // Design button component (small, left side)
+  const designButton = showDesignButton ? (
+    <Button
+      onClick={handleDesignModeToggle}
+      variant="ghost"
+      size="sm"
+      className="gap-1.5 h-7 px-2.5 text-xs border border-purple-500/50 text-purple-400 hover:bg-purple-500/20 hover:text-purple-300"
+    >
+      <Palette className="h-3.5 w-3.5" />
+      Design
+    </Button>
+  ) : null;
+
+  // BUILD button component (small, right side)
+  const buildButton = showBuildButton ? (
+    <Button
+      onClick={handleBuildClick}
+      size="sm"
+      className="gap-1.5 h-7 px-2.5 text-xs bg-green-600 hover:bg-green-700 text-white"
+    >
+      <Wrench className="h-3.5 w-3.5" />
+      BUILD
+    </Button>
+  ) : null;
+
   return (
     <div className="flex flex-col h-full bg-background overflow-hidden">
       <ChatHeader
@@ -308,38 +333,6 @@ export function ChatPane({ mode }: ChatPaneProps) {
         autoApplyStatus={autoApplyStatus}
       />
 
-      {/* Mode buttons - appear at bottom of chat pane, only in BUILD tab */}
-      {(showDesignButton || showBuildButton) && (
-        <div className="flex justify-between items-center px-4 py-3 border-t border-border bg-card/30">
-          {/* Design button - left side, shown when NOT in Design Mode */}
-          {showDesignButton ? (
-            <Button
-              onClick={handleDesignModeToggle}
-              variant="outline"
-              className="gap-2 border-purple-500/50 text-purple-400 hover:bg-purple-500/20 hover:text-purple-300"
-            >
-              <Palette className="h-4 w-4" />
-              Design
-            </Button>
-          ) : (
-            <div /> // Spacer
-          )}
-
-          {/* BUILD button - right side, shown when IN Design Mode */}
-          {showBuildButton ? (
-            <Button
-              onClick={handleBuildClick}
-              className="gap-2 bg-green-600 hover:bg-green-700 text-white"
-            >
-              <Wrench className="h-4 w-4" />
-              BUILD
-            </Button>
-          ) : (
-            <div /> // Spacer
-          )}
-        </div>
-      )}
-
       <ChatInput
         value={draft}
         onChange={setDraft}
@@ -353,6 +346,8 @@ export function ChatPane({ mode }: ChatPaneProps) {
             ? "Describe what you want to design..."
             : "Tell me what to build..."
         }
+        leftAction={designButton}
+        rightAction={buildButton}
       />
     </div>
   );
