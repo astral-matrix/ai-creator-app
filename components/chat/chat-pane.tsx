@@ -299,7 +299,7 @@ export function ChatPane({ mode }: ChatPaneProps) {
       className={`gap-1.5 h-7 px-2.5 text-xs transition-all ${
         isDesignMode
           ? "bg-purple-600 border-2 border-purple-400 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)]"
-          : "bg-purple-600 border border-purple-600 text-white hover:bg-purple-500"
+          : "bg-neutral-600 border-0 text-white hover:bg-neutral-500"
       }`}
     >
       <Palette className="h-3.5 w-3.5" />
@@ -315,7 +315,7 @@ export function ChatPane({ mode }: ChatPaneProps) {
       className={`gap-1.5 h-7 px-2.5 text-xs transition-all ${
         !isDesignMode
           ? "bg-green-600 border-2 border-green-400 text-white shadow-[0_0_10px_rgba(34,197,94,0.5)]"
-          : "bg-green-600 border border-green-600 text-white hover:bg-green-500"
+          : "bg-neutral-600 border-0 text-white hover:bg-neutral-500"
       }`}
     >
       <Wrench className="h-3.5 w-3.5" />
