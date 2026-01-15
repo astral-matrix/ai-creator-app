@@ -215,13 +215,20 @@ export function ChatPane({ mode }: ChatPaneProps) {
     selectConversation({ conversationId, targetMode: mode });
   };
 
-  const handleDesignModeToggle = () => {
-    setIsDesignMode(!isDesignMode);
+  const handleDesignModeClick = () => {
+    if (!isDesignMode) {
+      setIsDesignMode(true);
+      // Send mode switch message to chat
+      sendMessage("Design mode selected...");
+    }
   };
 
-  const handleBuildClick = () => {
-    // Switch from Design Mode to Build Mode
-    setIsDesignMode(false);
+  const handleBuildModeClick = () => {
+    if (isDesignMode) {
+      setIsDesignMode(false);
+      // Send mode switch message to chat
+      sendMessage("Build mode selected...");
+    }
   };
 
   const handleSend = async () => {
@@ -280,32 +287,39 @@ export function ChatPane({ mode }: ChatPaneProps) {
     [workspace, execCommand, conversation?.id]
   );
 
-  // Determine which mode buttons to show (only in BUILD tab)
-  const showDesignButton = mode === "BUILD" && !isDesignMode;
-  const showBuildButton = mode === "BUILD" && isDesignMode;
+  // Mode buttons - both always visible in BUILD tab, with selected state
+  const showModeButtons = mode === "BUILD";
 
-  // Design button component (small, left side)
-  const designButton = showDesignButton ? (
+  // Design button component (left side, selected/pressed when in Design Mode)
+  const designButton = showModeButtons ? (
     <Button
-      onClick={handleDesignModeToggle}
+      onClick={handleDesignModeClick}
       variant="ghost"
       size="sm"
-      className="gap-1.5 h-7 px-2.5 text-xs border border-purple-500/50 text-purple-400 hover:bg-purple-500/20 hover:text-purple-300"
+      className={`gap-1.5 h-7 px-2.5 text-xs transition-all ${
+        isDesignMode
+          ? "bg-purple-600 border-2 border-purple-400 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)]"
+          : "bg-purple-600 border border-purple-600 text-white hover:bg-purple-500"
+      }`}
     >
       <Palette className="h-3.5 w-3.5" />
       Design
     </Button>
   ) : null;
 
-  // BUILD button component (small, right side)
-  const buildButton = showBuildButton ? (
+  // BUILD button component (right side, selected/pressed when NOT in Design Mode)
+  const buildButton = showModeButtons ? (
     <Button
-      onClick={handleBuildClick}
+      onClick={handleBuildModeClick}
       size="sm"
-      className="gap-1.5 h-7 px-2.5 text-xs bg-green-600 hover:bg-green-700 text-white"
+      className={`gap-1.5 h-7 px-2.5 text-xs transition-all ${
+        !isDesignMode
+          ? "bg-green-600 border-2 border-green-400 text-white shadow-[0_0_10px_rgba(34,197,94,0.5)]"
+          : "bg-green-600 border border-green-600 text-white hover:bg-green-500"
+      }`}
     >
       <Wrench className="h-3.5 w-3.5" />
-      BUILD
+      Build
     </Button>
   ) : null;
 

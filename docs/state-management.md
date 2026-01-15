@@ -161,18 +161,34 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant User
-    participant ChatHeader
+    participant ChatPane
+    participant Store
+    participant API
+    participant useChat
+
+    User->>ChatPane: Click Design button
+    ChatPane->>Store: setIsDesignMode(true)
+    ChatPane->>useChat: sendMessage("Design mode selected...")
+    Store-->>ChatPane: Re-render with Design Mode UI
+    Note over ChatPane: Design button shows selected state
+    useChat->>API: POST /api/chat/stream (mode: 'DESIGN')
+    API-->>useChat: Agent acknowledges mode switch
+    Note over useChat: Agent response detected, confirms design mode
+```
+
+### Agent-Initiated Mode Switch Flow
+
+```mermaid
+sequenceDiagram
+    participant API
+    participant useChat
     participant Store
     participant ChatPane
-    participant API
 
-    User->>ChatHeader: Click Design button
-    ChatHeader->>Store: setIsDesignMode(true)
+    API-->>useChat: Agent says "Design mode selected..."
+    useChat->>useChat: Detect mode switch signal
+    useChat->>Store: setIsDesignMode(true)
     Store-->>ChatPane: Re-render with Design Mode UI
-    Note over ChatPane: Purple badge appears, placeholder changes
-    User->>ChatPane: Send design request
-    ChatPane->>API: POST /api/chat/stream (mode: 'DESIGN')
-    API-->>ChatPane: Design response with /design/*.md diff
 ```
 
 ### Message Sending Flow (New Conversation)
@@ -383,6 +399,10 @@ To verify mode isolation is working:
 
 4. **Conversation Test**: Each UI mode maintains its own conversation history independently.
 
-5. **Design Mode Test**: Click the Design button in BUILD mode. The purple badge should appear, and the backend should receive `mode: 'DESIGN'` in requests.
+5. **Design Mode Test**: Click the Design button in BUILD mode. The Design button should show selected state, "Design mode selected..." message should appear in chat, and the backend should receive `mode: 'DESIGN'` in requests.
 
-6. **Design to Build Transition**: In Design mode, when the agent asks "Ready to build?", clicking the BUILD button should switch to Build sub-mode and the purple badge should disappear.
+6. **Design to Build Transition**: In Design mode, when the agent asks "Ready to build?", clicking the BUILD button should switch to Build sub-mode, send "Build mode selected..." to chat, and the Build button should show selected state.
+
+7. **Agent Mode Switch Test**: When the AI agent outputs "Design mode selected..." or "Build mode selected...", the UI should automatically update to show the correct button selected state.
+
+8. **Both Buttons Visible Test**: In BUILD tab, both Design and Build buttons should always be visible, with the active mode's button showing the selected state.

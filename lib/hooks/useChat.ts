@@ -28,6 +28,7 @@ export function useChat(uiMode: UIMode, options?: UseChatOptions) {
     drafts,
     setDraft,
     isDesignMode,
+    setIsDesignMode,
   } = useAppStore();
 
   const conversation = conversations[uiMode];
@@ -203,6 +204,18 @@ export function useChat(uiMode: UIMode, options?: UseChatOptions) {
             messages: [...(currentConv.messages || []), assistantMessage],
           });
 
+          // Check if AI agent switched modes (only for BUILD UI mode)
+          if (uiMode === 'BUILD') {
+            // Check for mode switch signals in the AI response
+            if (fullContent.includes('Design mode selected...') || 
+                fullContent.includes('Switched to Design Mode')) {
+              setIsDesignMode(true);
+            } else if (fullContent.includes('Build mode selected...') || 
+                       fullContent.includes('Switched to Build Mode')) {
+              setIsDesignMode(false);
+            }
+          }
+
           // Call onStreamComplete callback if provided
           if (options?.onStreamComplete) {
             options.onStreamComplete(fullContent);
@@ -263,6 +276,7 @@ export function useChat(uiMode: UIMode, options?: UseChatOptions) {
       setIsStreaming,
       setStreamingContent,
       appendStreamingContent,
+      setIsDesignMode,
       queryClient,
       options,
     ]
