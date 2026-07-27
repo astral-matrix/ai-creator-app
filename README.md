@@ -1,6 +1,8 @@
-# AI Creator App
+# AI Creator
 
-A production-grade web application that provides a Cursor-like AI chat pane with a live Preview pane that can run AI-generated code in server-side sandboxes.
+Web application that provides a Cursor-like AI chat pane with a live preview pane that can run AI-generated code in server-side sandboxes.
+
+![ui screenshot](docs/ui/ai-creator-ui.png)
 
 ## Features
 
